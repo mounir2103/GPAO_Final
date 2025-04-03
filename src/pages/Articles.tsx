@@ -101,14 +101,14 @@ const mockArticles: Article[] = [
 const ArticlesPage = () => {
   const [articles, setArticles] = useState<Article[]>(mockArticles);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filterType, setFilterType] = useState<string>("");
+  const [filterType, setFilterType] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   
   // Filtrer les articles
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           article.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === "" || article.type === filterType;
+    const matchesType = filterType === "all" || article.type === filterType;
     return matchesSearch && matchesType;
   });
   
@@ -285,7 +285,7 @@ const ArticlesPage = () => {
                 <SelectValue placeholder="Tous les types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les types</SelectItem>
+                <SelectItem value="all">Tous les types</SelectItem>
                 <SelectItem value="raw">Matières premières</SelectItem>
                 <SelectItem value="component">Composants</SelectItem>
                 <SelectItem value="finished">Produits finis</SelectItem>

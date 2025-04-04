@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import {
   useReactTable,
@@ -27,6 +26,8 @@ import {
   Edit,
   Trash,
   Eye,
+  FileText,
+  Tag,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Article, ArticleStatus, ArticleType } from "@/lib/types";
@@ -87,7 +88,12 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         header: "Type",
         cell: (info) => {
           const type = info.getValue() as ArticleType;
-          return typeLabels[type] || type;
+          return (
+            <div className="flex items-center">
+              <Tag className="h-4 w-4 mr-1" />
+              <span>{typeLabels[type] || type}</span>
+            </div>
+          );
         },
       },
       {
@@ -105,9 +111,22 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
       {
+        accessorKey: "lotSize",
+        header: "Lot",
+        cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
+      },
+      {
         accessorKey: "price",
         header: "Prix",
         cell: (info) => <div className="text-right">{(info.getValue() as number).toFixed(2)} €</div>,
+      },
+      {
+        accessorKey: "TVA",
+        header: "TVA",
+        cell: (info) => {
+          const value = info.getValue() as number | undefined;
+          return <div className="text-right">{value ? `${value}%` : "-"}</div>;
+        },
       },
       {
         accessorKey: "fournisseur",
@@ -115,6 +134,22 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         cell: (info) => {
           const value = info.getValue() as string | undefined;
           return value || "-";
+        },
+      },
+      {
+        accessorKey: "isArticleFabrique",
+        header: "Fabriqué",
+        cell: (info) => {
+          const value = info.getValue() as boolean | undefined;
+          return value ? "Oui" : "Non";
+        },
+      },
+      {
+        accessorKey: "isArticleAchete",
+        header: "Acheté",
+        cell: (info) => {
+          const value = info.getValue() as boolean | undefined;
+          return value ? "Oui" : "Non";
         },
       },
       {
@@ -184,12 +219,15 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Input
-          placeholder="Rechercher..."
-          value={globalFilter ?? ""}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
-        />
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-sm"
+          />
+        </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Lignes par page</p>
@@ -210,7 +248,7 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         </div>
       </div>
 
-      <div className="rounded-md border shadow-sm">
+      <div className="rounded-md border shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

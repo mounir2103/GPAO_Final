@@ -14,7 +14,7 @@ export interface Article {
   leadTime: number;
   lotSize: number;
   price: number;
-  // Nouveaux attributs
+  // Attributs complémentaires
   articleDescription?: string;
   TVA?: number;
   fournisseur?: string;
@@ -89,4 +89,48 @@ export interface ManufacturingOrder {
   startDate: Date;
   endDate: Date;
   status: 'planned' | 'inProgress' | 'completed';
+}
+
+// Nouvelles interfaces pour les API REST Spring Boot
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface PageRequest {
+  page: number;
+  size: number;
+  sort?: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export interface ArticleDTO {
+  id?: string;
+  code: string;
+  name: string;
+  type: ArticleType;
+  unit: string;
+  stockSecurity: number;
+  leadTime: number;
+  lotSize: number;
+  price: number;
+  articleDescription?: string;
+  TVA?: number;
+  fournisseur?: string;
+  status?: ArticleStatus;
+  isArticleFabrique: boolean;
+  isArticleAchete: boolean;
 }

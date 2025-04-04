@@ -81,10 +81,26 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
   const handleSubmit = (values: z.infer<typeof articleSchema>) => {
     try {
-      onSubmit({
+      // Assurons-nous que tous les champs requis pour Article sont présents
+      const articleData: Article = {
         id: article?.id || `${Date.now()}`, // Génère un ID temporaire si nouvel article
-        ...values,
-      });
+        code: values.code,
+        name: values.name,
+        type: values.type,
+        unit: values.unit,
+        stockSecurity: values.stockSecurity,
+        leadTime: values.leadTime,
+        lotSize: values.lotSize,
+        price: values.price,
+        articleDescription: values.articleDescription,
+        TVA: values.TVA,
+        fournisseur: values.fournisseur,
+        status: values.status || "active",
+        isArticleFabrique: values.isArticleFabrique || false,
+        isArticleAchete: values.isArticleAchete || false,
+      };
+      
+      onSubmit(articleData);
       toast.success(article ? "Article modifié avec succès" : "Article ajouté avec succès");
     } catch (error) {
       toast.error("Une erreur est survenue");

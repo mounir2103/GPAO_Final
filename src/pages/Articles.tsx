@@ -4,22 +4,22 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -27,9 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Plus, Search, Filter, Edit, Trash } from "lucide-react";
-import { Article } from "@/lib/types";
+import { Plus, Search, Filter } from "lucide-react";
+import { Article, ArticleStatus } from "@/lib/types";
+import { ArticlesTable } from "@/components/articles/ArticlesTable";
+import { ArticleForm } from "@/components/articles/ArticleForm";
+import { toast } from "sonner";
 
 // Données fictives pour la démo
 const mockArticles: Article[] = [
@@ -42,7 +44,13 @@ const mockArticles: Article[] = [
     stockSecurity: 100,
     leadTime: 7,
     lotSize: 250,
-    price: 3.5
+    price: 3.5,
+    articleDescription: "Alliage d'aluminium de haute qualité pour l'industrie",
+    TVA: 20,
+    fournisseur: "MetalPro Industries",
+    status: "active",
+    isArticleAchete: true,
+    isArticleFabrique: false
   },
   {
     id: "2",
@@ -53,7 +61,13 @@ const mockArticles: Article[] = [
     stockSecurity: 200,
     leadTime: 14,
     lotSize: 500,
-    price: 2.8
+    price: 2.8,
+    articleDescription: "Acier de construction standard",
+    TVA: 20,
+    fournisseur: "SteelMaster",
+    status: "active",
+    isArticleAchete: true,
+    isArticleFabrique: false
   },
   {
     id: "3",
@@ -64,7 +78,13 @@ const mockArticles: Article[] = [
     stockSecurity: 50,
     leadTime: 21,
     lotSize: 100,
-    price: 15.75
+    price: 15.75,
+    articleDescription: "Carte électronique pour capteurs de pression",
+    TVA: 20,
+    fournisseur: "ElectroTech",
+    status: "active",
+    isArticleAchete: true,
+    isArticleFabrique: false
   },
   {
     id: "4",
@@ -76,6 +96,12 @@ const mockArticles: Article[] = [
     leadTime: 3,
     lotSize: 50,
     price: 78.5,
+    articleDescription: "Capteur de pression haute précision",
+    TVA: 20,
+    fournisseur: null,
+    status: "active",
+    isArticleFabrique: true,
+    isArticleAchete: false,
     components: [
       { articleId: "1", articleCode: "MP001", articleName: "Aluminium 6061", quantity: 0.5 },
       { articleId: "3", articleCode: "COMP001", articleName: "Carte électronique type A", quantity: 1 }
@@ -91,6 +117,12 @@ const mockArticles: Article[] = [
     leadTime: 5,
     lotSize: 30,
     price: 125,
+    articleDescription: "Module de contrôle pour systèmes industriels",
+    TVA: 20,
+    fournisseur: null,
+    status: "active",
+    isArticleFabrique: true,
+    isArticleAchete: false,
     components: [
       { articleId: "2", articleCode: "MP002", articleName: "Acier S235", quantity: 1.2 },
       { articleId: "3", articleCode: "COMP001", articleName: "Carte électronique type A", quantity: 2 }
@@ -102,160 +134,70 @@ const ArticlesPage = () => {
   const [articles, setArticles] = useState<Article[]>(mockArticles);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("all");
+  
+  // Dialogues
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState<boolean>(false);
+  
+  // Article sélectionné
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   
   // Filtrer les articles
   const filteredArticles = articles.filter(article => {
-    const matchesSearch = article.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          article.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = 
+      article.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      article.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (article.articleDescription && article.articleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (article.fournisseur && article.fournisseur.toLowerCase().includes(searchQuery.toLowerCase()));
+    
     const matchesType = filterType === "all" || article.type === filterType;
     return matchesSearch && matchesType;
   });
   
-  // Fonction pour ajouter un nouvel article (simulation)
-  const handleAddArticle = (newArticle: Partial<Article>) => {
-    const article: Article = {
-      id: `${articles.length + 1}`,
-      code: newArticle.code || "",
-      name: newArticle.name || "",
-      type: newArticle.type as any || "raw",
-      unit: newArticle.unit || "pcs",
-      stockSecurity: newArticle.stockSecurity || 0,
-      leadTime: newArticle.leadTime || 0,
-      lotSize: newArticle.lotSize || 1,
-      price: newArticle.price || 0
-    };
-    
-    setArticles([...articles, article]);
+  // Fonction pour ajouter un nouvel article
+  const handleAddArticle = (newArticle: Article) => {
+    setArticles([...articles, newArticle]);
     setIsAddDialogOpen(false);
+    toast.success("Article ajouté avec succès");
   };
   
-  // Formulaire d'ajout d'article
-  const ArticleForm = () => {
-    const [formData, setFormData] = useState<Partial<Article>>({
-      code: "",
-      name: "",
-      type: "raw",
-      unit: "pcs",
-      stockSecurity: 10,
-      leadTime: 7,
-      lotSize: 1,
-      price: 0
-    });
-    
-    const handleChange = (field: string, value: any) => {
-      setFormData({ ...formData, [field]: value });
-    };
-    
-    return (
-      <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">Code</Label>
-            <Input
-              id="code"
-              value={formData.code}
-              onChange={(e) => handleChange("code", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => handleChange("type", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="raw">Matière première</SelectItem>
-                <SelectItem value="component">Composant</SelectItem>
-                <SelectItem value="finished">Produit fini</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="unit">Unité</Label>
-            <Select
-              value={formData.unit}
-              onValueChange={(value) => handleChange("unit", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Unité" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pcs">Pièce</SelectItem>
-                <SelectItem value="kg">Kilogramme</SelectItem>
-                <SelectItem value="m">Mètre</SelectItem>
-                <SelectItem value="l">Litre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="stockSecurity">Stock de sécurité</Label>
-            <Input
-              id="stockSecurity"
-              type="number"
-              value={formData.stockSecurity}
-              onChange={(e) => handleChange("stockSecurity", parseFloat(e.target.value))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="leadTime">Délai d'obtention (jours)</Label>
-            <Input
-              id="leadTime"
-              type="number"
-              value={formData.leadTime}
-              onChange={(e) => handleChange("leadTime", parseInt(e.target.value))}
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="lotSize">Taille de lot</Label>
-            <Input
-              id="lotSize"
-              type="number"
-              value={formData.lotSize}
-              onChange={(e) => handleChange("lotSize", parseFloat(e.target.value))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="price">Prix unitaire</Label>
-            <Input
-              id="price"
-              type="number"
-              value={formData.price}
-              onChange={(e) => handleChange("price", parseFloat(e.target.value))}
-            />
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-            Annuler
-          </Button>
-          <Button type="button" onClick={() => handleAddArticle(formData)}>
-            Ajouter
-          </Button>
-        </DialogFooter>
-      </div>
+  // Fonction pour éditer un article
+  const handleEditArticle = (editedArticle: Article) => {
+    const updatedArticles = articles.map(article => 
+      article.id === editedArticle.id ? editedArticle : article
     );
+    setArticles(updatedArticles);
+    setIsEditDialogOpen(false);
+    toast.success("Article modifié avec succès");
+  };
+  
+  // Fonction pour supprimer un article
+  const handleDeleteArticle = () => {
+    if (!selectedArticle) return;
+    
+    const updatedArticles = articles.filter(article => article.id !== selectedArticle.id);
+    setArticles(updatedArticles);
+    setIsDeleteDialogOpen(false);
+    setSelectedArticle(null);
+    toast.success("Article supprimé avec succès");
+  };
+  
+  // Handlers pour l'ouverture des dialogues
+  const openEditDialog = (article: Article) => {
+    setSelectedArticle(article);
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (article: Article) => {
+    setSelectedArticle(article);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const openViewDialog = (article: Article) => {
+    setSelectedArticle(article);
+    setIsViewDialogOpen(true);
   };
 
   return (
@@ -273,7 +215,7 @@ const ArticlesPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input 
-              placeholder="Rechercher par code ou nom..." 
+              placeholder="Rechercher par code, nom, description..." 
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -281,7 +223,7 @@ const ArticlesPage = () => {
           </div>
           <div className="flex gap-2">
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Tous les types" />
               </SelectTrigger>
               <SelectContent>
@@ -292,75 +234,171 @@ const ArticlesPage = () => {
               </SelectContent>
             </Select>
             
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4 mr-2" /> Nouvel article</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Ajouter un nouvel article</DialogTitle>
-                  <DialogDescription>
-                    Renseignez les détails du nouvel article ci-dessous
-                  </DialogDescription>
-                </DialogHeader>
-                <ArticleForm />
-              </DialogContent>
-            </Dialog>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Nouvel article
+            </Button>
           </div>
         </div>
 
         {/* Tableau des articles */}
-        <div className="rounded-md border shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Nom</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Unité</TableHead>
-                <TableHead className="text-right">Stock sécu.</TableHead>
-                <TableHead className="text-right">Délai (j)</TableHead>
-                <TableHead className="text-right">Prix</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredArticles.length > 0 ? (
-                filteredArticles.map((article) => (
-                  <TableRow key={article.id}>
-                    <TableCell className="font-medium">{article.code}</TableCell>
-                    <TableCell>{article.name}</TableCell>
-                    <TableCell>
-                      {article.type === "raw" && "Matière première"}
-                      {article.type === "component" && "Composant"}
-                      {article.type === "finished" && "Produit fini"}
-                    </TableCell>
-                    <TableCell>{article.unit}</TableCell>
-                    <TableCell className="text-right">{article.stockSecurity}</TableCell>
-                    <TableCell className="text-right">{article.leadTime}</TableCell>
-                    <TableCell className="text-right">{article.price.toFixed(2)} €</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center space-x-1">
-                        <Button variant="ghost" size="icon">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
-                    Aucun article trouvé
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <ArticlesTable
+          data={filteredArticles}
+          onEdit={openEditDialog}
+          onDelete={openDeleteDialog}
+          onView={openViewDialog}
+        />
+
+        {/* Dialogue d'ajout d'article */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Ajouter un nouvel article</DialogTitle>
+              <DialogDescription>
+                Renseignez les détails du nouvel article ci-dessous
+              </DialogDescription>
+            </DialogHeader>
+            <ArticleForm
+              onSubmit={handleAddArticle}
+              onCancel={() => setIsAddDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogue d'édition d'article */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Modifier l'article</DialogTitle>
+              <DialogDescription>
+                Modifiez les détails de l'article
+              </DialogDescription>
+            </DialogHeader>
+            {selectedArticle && (
+              <ArticleForm
+                article={selectedArticle}
+                onSubmit={handleEditArticle}
+                onCancel={() => setIsEditDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogue de suppression d'article */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cet article ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. L'article {selectedArticle?.code} - {selectedArticle?.name} sera définitivement supprimé.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive text-destructive-foreground">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialogue de visualisation d'article */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Détails de l'article</DialogTitle>
+            </DialogHeader>
+            {selectedArticle && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Code</p>
+                  <p>{selectedArticle.code}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Nom</p>
+                  <p>{selectedArticle.name}</p>
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <p className="text-sm font-medium">Description</p>
+                  <p>{selectedArticle.articleDescription || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Type</p>
+                  <p>
+                    {selectedArticle.type === 'raw' && 'Matière première'}
+                    {selectedArticle.type === 'component' && 'Composant'}
+                    {selectedArticle.type === 'finished' && 'Produit fini'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Unité</p>
+                  <p>{selectedArticle.unit}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Prix unitaire</p>
+                  <p>{selectedArticle.price.toFixed(2)} €</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">TVA</p>
+                  <p>{selectedArticle.TVA || 20} %</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Fournisseur</p>
+                  <p>{selectedArticle.fournisseur || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Stock de sécurité</p>
+                  <p>{selectedArticle.stockSecurity} {selectedArticle.unit}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Délai d'obtention</p>
+                  <p>{selectedArticle.leadTime} jours</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Taille de lot</p>
+                  <p>{selectedArticle.lotSize} {selectedArticle.unit}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Statut</p>
+                  <p>{selectedArticle.status || 'Actif'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Article fabriqué</p>
+                  <p>{selectedArticle.isArticleFabrique ? 'Oui' : 'Non'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Article acheté</p>
+                  <p>{selectedArticle.isArticleAchete ? 'Oui' : 'Non'}</p>
+                </div>
+                
+                {selectedArticle.components && selectedArticle.components.length > 0 && (
+                  <div className="col-span-2 space-y-2 mt-4">
+                    <h3 className="font-medium">Composants</h3>
+                    <div className="border rounded-md">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-2 text-left">Code</th>
+                            <th className="px-4 py-2 text-left">Nom</th>
+                            <th className="px-4 py-2 text-right">Quantité</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedArticle.components.map((component) => (
+                            <tr key={component.articleId} className="border-b">
+                              <td className="px-4 py-2">{component.articleCode}</td>
+                              <td className="px-4 py-2">{component.articleName}</td>
+                              <td className="px-4 py-2 text-right">{component.quantity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

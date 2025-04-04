@@ -2,6 +2,7 @@
 // Types pour la gestion des articles et stocks
 
 export type ArticleType = 'raw' | 'component' | 'finished';
+export type ArticleStatus = 'active' | 'inactive' | 'discontinued' | 'pending';
 
 export interface Article {
   id: string;
@@ -13,6 +14,13 @@ export interface Article {
   leadTime: number;
   lotSize: number;
   price: number;
+  // Nouveaux attributs
+  articleDescription?: string;
+  TVA?: number;
+  fournisseur?: string;
+  status?: ArticleStatus;
+  isArticleFabrique?: boolean;
+  isArticleAchete?: boolean;
   // Pour les composants ou produits finis
   components?: ArticleComponent[];
 }

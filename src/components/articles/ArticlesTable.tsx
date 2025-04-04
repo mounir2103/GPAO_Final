@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import {
   useReactTable,
@@ -67,12 +68,14 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
   const columns = useMemo<ColumnDef<Article>[]>(
     () => [
       {
-        accessorKey: "code",
+        accessorFn: (row) => row.code_bare || row.code,
+        id: "code_bare",
         header: "Code",
         cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
       },
       {
-        accessorKey: "name",
+        accessorFn: (row) => row.articleName || row.name,
+        id: "articleName",
         header: "Nom",
       },
       {
@@ -88,12 +91,12 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         header: "Type",
         cell: (info) => {
           const type = info.getValue() as ArticleType;
-          return (
+          return type ? (
             <div className="flex items-center">
               <Tag className="h-4 w-4 mr-1" />
               <span>{typeLabels[type] || type}</span>
             </div>
-          );
+          ) : "-";
         },
       },
       {
@@ -101,12 +104,14 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         header: "Unité",
       },
       {
-        accessorKey: "stockSecurity",
+        accessorFn: (row) => row.safetyStock || row.stockSecurity,
+        id: "safetyStock",
         header: "Stock sécu.",
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
       {
-        accessorKey: "leadTime",
+        accessorFn: (row) => row.delaidoptention || row.leadTime,
+        id: "delaidoptention",
         header: "Délai (j)",
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
@@ -116,12 +121,14 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
       {
-        accessorKey: "price",
+        accessorFn: (row) => row.unitPrice || row.price,
+        id: "unitPrice",
         header: "Prix",
         cell: (info) => <div className="text-right">{(info.getValue() as number).toFixed(2)} €</div>,
       },
       {
-        accessorKey: "TVA",
+        accessorFn: (row) => row.tva || row.TVA,
+        id: "tva",
         header: "TVA",
         cell: (info) => {
           const value = info.getValue() as number | undefined;
@@ -137,7 +144,8 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         },
       },
       {
-        accessorKey: "isArticleFabrique",
+        accessorFn: (row) => row.articleFabrique || row.isArticleFabrique,
+        id: "articleFabrique",
         header: "Fabriqué",
         cell: (info) => {
           const value = info.getValue() as boolean | undefined;
@@ -145,7 +153,8 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         },
       },
       {
-        accessorKey: "isArticleAchete",
+        accessorFn: (row) => row.articleAchte || row.isArticleAchete,
+        id: "articleAchte",
         header: "Acheté",
         cell: (info) => {
           const value = info.getValue() as boolean | undefined;
@@ -153,7 +162,8 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         },
       },
       {
-        accessorKey: "status",
+        accessorFn: (row) => row.status,
+        id: "status",
         header: "Statut",
         cell: (info) => {
           const status = info.getValue() as ArticleStatus | undefined;

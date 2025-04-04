@@ -26,20 +26,20 @@ import { Article, ArticleStatus, ArticleType } from "@/lib/types";
 import { toast } from "sonner";
 
 const articleSchema = z.object({
-  code: z.string().min(2, "Le code doit contenir au moins 2 caractères"),
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  code_bare: z.string().min(2, "Le code doit contenir au moins 2 caractères"),
+  articleName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   type: z.enum(["raw", "component", "finished"]),
   unit: z.string().min(1, "L'unité est requise"),
-  stockSecurity: z.number().min(0, "Le stock de sécurité doit être positif"),
-  leadTime: z.number().min(0, "Le délai d'obtention doit être positif"),
+  safetyStock: z.number().min(0, "Le stock de sécurité doit être positif"),
+  delaidoptention: z.number().min(0, "Le délai d'obtention doit être positif"),
   lotSize: z.number().min(1, "La taille de lot doit être au moins 1"),
-  price: z.number().min(0, "Le prix doit être positif"),
+  unitPrice: z.number().min(0, "Le prix doit être positif"),
   articleDescription: z.string().optional(),
-  TVA: z.number().min(0).max(100).optional(),
+  tva: z.number().min(0).max(100).optional(),
   fournisseur: z.string().optional(),
   status: z.enum(["active", "inactive", "discontinued", "pending"]).optional(),
-  isArticleFabrique: z.boolean().optional(),
-  isArticleAchete: z.boolean().optional(),
+  articleFabrique: z.boolean().optional(),
+  articleAchte: z.boolean().optional(),
 });
 
 interface ArticleFormProps {
@@ -53,29 +53,36 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
     resolver: zodResolver(articleSchema),
     defaultValues: article
       ? {
-          ...article,
-          stockSecurity: article.stockSecurity || 0,
-          leadTime: article.leadTime || 0,
+          code_bare: article.code_bare || article.code || "",
+          articleName: article.articleName || article.name || "",
+          type: article.type || "raw" as ArticleType,
+          unit: article.unit || "pcs",
+          safetyStock: article.safetyStock || article.stockSecurity || 0,
+          delaidoptention: article.delaidoptention || article.leadTime || 0,
           lotSize: article.lotSize || 1,
-          price: article.price || 0,
-          TVA: article.TVA || 20,
+          unitPrice: article.unitPrice || article.price || 0,
+          articleDescription: article.articleDescription || "",
+          tva: article.tva || article.TVA || 20,
+          fournisseur: article.fournisseur || "",
           status: article.status || "active",
-          isArticleFabrique: article.isArticleFabrique || false,
-          isArticleAchete: article.isArticleAchete || false,
+          articleFabrique: article.articleFabrique || article.isArticleFabrique || false,
+          articleAchte: article.articleAchte || article.isArticleAchete || true,
         }
       : {
-          code: "",
-          name: "",
+          code_bare: "",
+          articleName: "",
           type: "raw" as ArticleType,
           unit: "pcs",
-          stockSecurity: 10,
-          leadTime: 7,
+          safetyStock: 10,
+          delaidoptention: 7,
           lotSize: 1,
-          price: 0,
-          TVA: 20,
+          unitPrice: 0,
+          articleDescription: "",
+          tva: 20,
+          fournisseur: "",
           status: "active" as ArticleStatus,
-          isArticleFabrique: false,
-          isArticleAchete: true,
+          articleFabrique: false,
+          articleAchte: true,
         },
   });
 
@@ -84,20 +91,29 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
       // Assurons-nous que tous les champs requis pour Article sont présents
       const articleData: Article = {
         id: article?.id || `${Date.now()}`, // Génère un ID temporaire si nouvel article
-        code: values.code,
-        name: values.name,
+        code_bare: values.code_bare,
+        articleName: values.articleName,
+        articleDescription: values.articleDescription,
+        unitPrice: values.unitPrice,
+        tva: values.tva || 20,
+        fournisseur: values.fournisseur,
+        delaidoptention: values.delaidoptention,
+        safetyStock: values.safetyStock,
+        status: values.status || "active",
+        articleFabrique: values.articleFabrique || false,
+        articleAchte: values.articleAchte || true,
+        // Compatibilité avec le code existant
+        code: values.code_bare,
+        name: values.articleName,
         type: values.type,
         unit: values.unit,
-        stockSecurity: values.stockSecurity,
-        leadTime: values.leadTime,
+        stockSecurity: values.safetyStock,
+        leadTime: values.delaidoptention,
         lotSize: values.lotSize,
-        price: values.price,
-        articleDescription: values.articleDescription,
-        TVA: values.TVA,
-        fournisseur: values.fournisseur,
-        status: values.status || "active",
-        isArticleFabrique: values.isArticleFabrique || false,
-        isArticleAchete: values.isArticleAchete || false,
+        price: values.unitPrice,
+        TVA: values.tva,
+        isArticleFabrique: values.articleFabrique,
+        isArticleAchete: values.articleAchte,
       };
       
       onSubmit(articleData);
@@ -114,7 +130,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="code"
+            name="code_bare"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Code</FormLabel>
@@ -128,7 +144,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="name"
+            name="articleName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nom</FormLabel>
@@ -209,7 +225,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="stockSecurity"
+            name="safetyStock"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Stock de sécurité</FormLabel>
@@ -227,7 +243,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="leadTime"
+            name="delaidoptention"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Délai d'obtention (jours)</FormLabel>
@@ -263,7 +279,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="price"
+            name="unitPrice"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Prix unitaire (€)</FormLabel>
@@ -282,7 +298,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="TVA"
+            name="tva"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>TVA (%)</FormLabel>
@@ -343,7 +359,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="isArticleFabrique"
+            name="articleFabrique"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -361,7 +377,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="isArticleAchete"
+            name="articleAchte"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>

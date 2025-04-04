@@ -6,19 +6,27 @@ export type ArticleStatus = 'active' | 'inactive' | 'discontinued' | 'pending';
 
 export interface Article {
   id: string;
-  code: string;
-  name: string;
-  type: ArticleType;
-  unit: string;
-  stockSecurity: number;
-  leadTime: number;
-  lotSize: number;
-  price: number;
-  // Attributs complémentaires
+  code_bare: string;
+  articleName: string;
   articleDescription?: string;
-  TVA?: number;
+  unitPrice: number;
+  tva: number;
   fournisseur?: string;
+  delaidoptention: number;
   status?: ArticleStatus;
+  articleFabrique: boolean;
+  articleAchte: boolean;
+  safetyStock: number;
+  // Pour la compatibilité avec le code existant
+  code?: string;
+  name?: string;
+  type?: ArticleType;
+  unit?: string;
+  stockSecurity?: number;
+  leadTime?: number;
+  lotSize?: number;
+  price?: number;
+  TVA?: number;
   isArticleFabrique?: boolean;
   isArticleAchete?: boolean;
   // Pour les composants ou produits finis
@@ -119,18 +127,18 @@ export interface PageResponse<T> {
 
 export interface ArticleDTO {
   id?: string;
-  code: string;
-  name: string;
-  type: ArticleType;
-  unit: string;
-  stockSecurity: number;
-  leadTime: number;
-  lotSize: number;
-  price: number;
+  code_bare: string;
+  articleName: string;
   articleDescription?: string;
-  TVA?: number;
+  unitPrice: number;
+  tva: number;
   fournisseur?: string;
+  delaidoptention: number;
   status?: ArticleStatus;
-  isArticleFabrique: boolean;
-  isArticleAchete: boolean;
+  articleFabrique: boolean;
+  articleAchte: boolean;
+  safetyStock: number;
+  type?: ArticleType;
+  unit?: string;
 }
+

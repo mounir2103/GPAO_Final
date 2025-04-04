@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -37,69 +36,105 @@ import { toast } from "sonner";
 const mockArticles: Article[] = [
   {
     id: "1",
-    code: "MP001",
-    name: "Aluminium 6061",
+    code_bare: "MP001",
+    articleName: "Aluminium 6061",
     type: "raw",
     unit: "kg",
-    stockSecurity: 100,
-    leadTime: 7,
+    safetyStock: 100,
+    delaidoptention: 7,
     lotSize: 250,
-    price: 3.5,
+    unitPrice: 3.5,
     articleDescription: "Alliage d'aluminium de haute qualité pour l'industrie",
-    TVA: 20,
+    tva: 20,
     fournisseur: "MetalPro Industries",
     status: "active",
+    articleAchte: true,
+    articleFabrique: false,
+    // Compatibilité avec le code existant
+    code: "MP001",
+    name: "Aluminium 6061",
+    stockSecurity: 100,
+    leadTime: 7,
+    price: 3.5,
+    TVA: 20,
     isArticleAchete: true,
     isArticleFabrique: false
   },
   {
     id: "2",
-    code: "MP002",
-    name: "Acier S235",
+    code_bare: "MP002",
+    articleName: "Acier S235",
     type: "raw",
     unit: "kg",
-    stockSecurity: 200,
-    leadTime: 14,
+    safetyStock: 200,
+    delaidoptention: 14,
     lotSize: 500,
-    price: 2.8,
+    unitPrice: 2.8,
     articleDescription: "Acier de construction standard",
-    TVA: 20,
+    tva: 20,
     fournisseur: "SteelMaster",
     status: "active",
+    articleAchte: true,
+    articleFabrique: false,
+    // Compatibilité avec le code existant
+    code: "MP002",
+    name: "Acier S235",
+    stockSecurity: 200,
+    leadTime: 14,
+    price: 2.8,
+    TVA: 20,
     isArticleAchete: true,
     isArticleFabrique: false
   },
   {
     id: "3",
-    code: "COMP001",
-    name: "Carte électronique type A",
+    code_bare: "COMP001",
+    articleName: "Carte électronique type A",
     type: "component",
     unit: "pcs",
-    stockSecurity: 50,
-    leadTime: 21,
+    safetyStock: 50,
+    delaidoptention: 21,
     lotSize: 100,
-    price: 15.75,
+    unitPrice: 15.75,
     articleDescription: "Carte électronique pour capteurs de pression",
-    TVA: 20,
+    tva: 20,
     fournisseur: "ElectroTech",
     status: "active",
+    articleAchte: true,
+    articleFabrique: false,
+    // Compatibilité avec le code existant
+    code: "COMP001",
+    name: "Carte électronique type A",
+    stockSecurity: 50,
+    leadTime: 21,
+    price: 15.75,
+    TVA: 20,
     isArticleAchete: true,
     isArticleFabrique: false
   },
   {
     id: "4",
-    code: "PF001",
-    name: "Capteur de pression",
+    code_bare: "PF001",
+    articleName: "Capteur de pression",
     type: "finished",
     unit: "pcs",
-    stockSecurity: 20,
-    leadTime: 3,
+    safetyStock: 20,
+    delaidoptention: 3,
     lotSize: 50,
-    price: 78.5,
+    unitPrice: 78.5,
     articleDescription: "Capteur de pression haute précision",
-    TVA: 20,
+    tva: 20,
     fournisseur: null,
     status: "active",
+    articleFabrique: true,
+    articleAchte: false,
+    // Compatibilité avec le code existant
+    code: "PF001",
+    name: "Capteur de pression",
+    stockSecurity: 20,
+    leadTime: 3,
+    price: 78.5,
+    TVA: 20,
     isArticleFabrique: true,
     isArticleAchete: false,
     components: [
@@ -109,18 +144,27 @@ const mockArticles: Article[] = [
   },
   {
     id: "5",
-    code: "PF002",
-    name: "Module de contrôle",
+    code_bare: "PF002",
+    articleName: "Module de contrôle",
     type: "finished",
     unit: "pcs",
-    stockSecurity: 15,
-    leadTime: 5,
+    safetyStock: 15,
+    delaidoptention: 5,
     lotSize: 30,
-    price: 125,
+    unitPrice: 125,
     articleDescription: "Module de contrôle pour systèmes industriels",
-    TVA: 20,
+    tva: 20,
     fournisseur: null,
     status: "active",
+    articleFabrique: true,
+    articleAchte: false,
+    // Compatibilité avec le code existant
+    code: "PF002",
+    name: "Module de contrôle",
+    stockSecurity: 15,
+    leadTime: 5,
+    price: 125,
+    TVA: 20,
     isArticleFabrique: true,
     isArticleAchete: false,
     components: [
@@ -146,11 +190,16 @@ const ArticlesPage = () => {
   
   // Filtrer les articles
   const filteredArticles = articles.filter(article => {
-    const matchesSearch = 
-      article.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      article.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (article.articleDescription && article.articleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (article.fournisseur && article.fournisseur.toLowerCase().includes(searchQuery.toLowerCase()));
+    const searchFields = [
+      article.code_bare || article.code || "",
+      article.articleName || article.name || "",
+      article.articleDescription || "",
+      article.fournisseur || ""
+    ];
+    
+    const matchesSearch = searchFields.some(field => 
+      field.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     
     const matchesType = filterType === "all" || article.type === filterType;
     return matchesSearch && matchesType;
@@ -289,7 +338,7 @@ const ArticlesPage = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cet article ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action est irréversible. L'article {selectedArticle?.code} - {selectedArticle?.name} sera définitivement supprimé.
+                Cette action est irréversible. L'article {selectedArticle?.code_bare || selectedArticle?.code} - {selectedArticle?.articleName || selectedArticle?.name} sera définitivement supprimé.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -311,11 +360,11 @@ const ArticlesPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Code</p>
-                  <p>{selectedArticle.code}</p>
+                  <p>{selectedArticle.code_bare || selectedArticle.code}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Nom</p>
-                  <p>{selectedArticle.name}</p>
+                  <p>{selectedArticle.articleName || selectedArticle.name}</p>
                 </div>
                 <div className="space-y-1 col-span-2">
                   <p className="text-sm font-medium">Description</p>
@@ -335,11 +384,11 @@ const ArticlesPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Prix unitaire</p>
-                  <p>{selectedArticle.price.toFixed(2)} €</p>
+                  <p>{(selectedArticle.unitPrice || selectedArticle.price).toFixed(2)} €</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">TVA</p>
-                  <p>{selectedArticle.TVA || 20} %</p>
+                  <p>{selectedArticle.tva || selectedArticle.TVA || 20} %</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Fournisseur</p>
@@ -347,11 +396,11 @@ const ArticlesPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Stock de sécurité</p>
-                  <p>{selectedArticle.stockSecurity} {selectedArticle.unit}</p>
+                  <p>{selectedArticle.safetyStock || selectedArticle.stockSecurity} {selectedArticle.unit}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Délai d'obtention</p>
-                  <p>{selectedArticle.leadTime} jours</p>
+                  <p>{selectedArticle.delaidoptention || selectedArticle.leadTime} jours</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Taille de lot</p>
@@ -363,11 +412,11 @@ const ArticlesPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Article fabriqué</p>
-                  <p>{selectedArticle.isArticleFabrique ? 'Oui' : 'Non'}</p>
+                  <p>{(selectedArticle.articleFabrique || selectedArticle.isArticleFabrique) ? 'Oui' : 'Non'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Article acheté</p>
-                  <p>{selectedArticle.isArticleAchete ? 'Oui' : 'Non'}</p>
+                  <p>{(selectedArticle.articleAchte || selectedArticle.isArticleAchete) ? 'Oui' : 'Non'}</p>
                 </div>
                 
                 {selectedArticle.components && selectedArticle.components.length > 0 && (

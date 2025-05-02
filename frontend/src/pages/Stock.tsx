@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -31,58 +30,40 @@ import {
 import { Stock } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Search, Plus, ArrowDown, ArrowUp, Filter } from "lucide-react";
+import { Search, Plus, ArrowDown, ArrowUp } from "lucide-react";
 
-// Données fictives pour la démo
 const mockStocks: Stock[] = [
   {
-    articleId: "1",
-    articleCode: "MP001",
-    articleName: "Aluminium 6061",
-    available: 450,
-    reserved: 120,
-    expected: 250
+    id: 1,
+    articleId: 1,
+    articleName: "Vis M6",
+    articleCode: "VIS-M6",
+    quantity: 120,
+    minQuantity: 50,
+    maxQuantity: 200,
+    lastUpdated: "2024-06-01",
+    location: "A1"
   },
   {
-    articleId: "2",
-    articleCode: "MP002",
-    articleName: "Acier S235",
-    available: 780,
-    reserved: 350,
-    expected: 500
-  },
-  {
-    articleId: "3",
-    articleCode: "COMP001",
-    articleName: "Carte électronique type A",
-    available: 85,
-    reserved: 40,
-    expected: 100
-  },
-  {
-    articleId: "4",
-    articleCode: "PF001",
-    articleName: "Capteur de pression",
-    available: 32,
-    reserved: 15,
-    expected: 50
-  },
-  {
-    articleId: "5",
-    articleCode: "PF002",
-    articleName: "Module de contrôle",
-    available: 18,
-    reserved: 8,
-    expected: 30
+    id: 2,
+    articleId: 2,
+    articleName: "Plaque acier",
+    articleCode: "PLAQUE-ACIER",
+    quantity: 30,
+    minQuantity: 20,
+    maxQuantity: 100,
+    lastUpdated: "2024-06-01",
+    location: "B2"
   }
 ];
 
 const StockPage = () => {
   const [stocks, setStocks] = useState<Stock[]>(mockStocks);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isStockEntryDialogOpen, setIsStockEntryDialogOpen] = useState<boolean>(false);
   const [isStockExitDialogOpen, setIsStockExitDialogOpen] = useState<boolean>(false);
-  const [selectedArticleId, setSelectedArticleId] = useState<string>("");
+  const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [stockQuantity, setStockQuantity] = useState<number>(0);
 
   // Filtrer les articles
@@ -97,18 +78,14 @@ const StockPage = () => {
       toast.error("Veuillez sélectionner un article et entrer une quantité valide");
       return;
     }
-
-    setStocks(prevStocks => 
-      prevStocks.map(stock => 
-        stock.articleId === selectedArticleId 
-          ? { ...stock, available: stock.available + stockQuantity } 
-          : stock
-      )
-    );
-
+    setStocks(prev => prev.map(stock =>
+      stock.articleId === selectedArticleId
+        ? { ...stock, quantity: stock.quantity + stockQuantity }
+        : stock
+    ));
     toast.success(`Entrée de stock de ${stockQuantity} unités enregistrée`);
     setIsStockEntryDialogOpen(false);
-    setSelectedArticleId("");
+    setSelectedArticleId(null);
     setStockQuantity(0);
   };
 
@@ -118,25 +95,14 @@ const StockPage = () => {
       toast.error("Veuillez sélectionner un article et entrer une quantité valide");
       return;
     }
-
-    const stockItem = stocks.find(stock => stock.articleId === selectedArticleId);
-    
-    if (!stockItem || stockItem.available < stockQuantity) {
-      toast.error("Stock insuffisant pour cette opération");
-      return;
-    }
-
-    setStocks(prevStocks => 
-      prevStocks.map(stock => 
-        stock.articleId === selectedArticleId 
-          ? { ...stock, available: stock.available - stockQuantity } 
-          : stock
-      )
-    );
-
+    setStocks(prev => prev.map(stock =>
+      stock.articleId === selectedArticleId
+        ? { ...stock, quantity: Math.max(0, stock.quantity - stockQuantity) }
+        : stock
+    ));
     toast.success(`Sortie de stock de ${stockQuantity} unités enregistrée`);
     setIsStockExitDialogOpen(false);
-    setSelectedArticleId("");
+    setSelectedArticleId(null);
     setStockQuantity(0);
   };
 
@@ -146,13 +112,16 @@ const StockPage = () => {
       <div className="grid gap-4 py-4">
         <div className="space-y-2">
           <Label htmlFor="article">Article</Label>
-          <Select value={selectedArticleId} onValueChange={setSelectedArticleId}>
+          <Select 
+            value={selectedArticleId?.toString() || ""} 
+            onValueChange={(value) => setSelectedArticleId(parseInt(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un article" />
             </SelectTrigger>
             <SelectContent>
               {stocks.map(stock => (
-                <SelectItem key={stock.articleId} value={stock.articleId}>
+                <SelectItem key={stock.articleId} value={stock.articleId.toString()}>
                   {stock.articleCode} - {stock.articleName}
                 </SelectItem>
               ))}
@@ -173,7 +142,7 @@ const StockPage = () => {
         
         {selectedArticleId && isEntry === false && (
           <div className="text-sm">
-            Stock disponible: {stocks.find(stock => stock.articleId === selectedArticleId)?.available || 0} unités
+            Stock disponible: {stocks.find(stock => stock.articleId === selectedArticleId)?.quantity || 0} unités
           </div>
         )}
         
@@ -196,6 +165,16 @@ const StockPage = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -205,7 +184,6 @@ const StockPage = () => {
             Suivez l'état des stocks et gérez les mouvements d'entrée et sortie
           </p>
         </div>
-
         {/* Résumé des stocks */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="shadow-sm">
@@ -217,32 +195,29 @@ const StockPage = () => {
               <p className="text-muted-foreground text-sm">Articles en stock</p>
             </CardContent>
           </Card>
-          
           <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Stock faible</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-orange-500">
-                {stocks.filter(stock => stock.available < 50).length}
+                {stocks.filter(stock => stock.quantity < stock.minQuantity).length}
               </div>
               <p className="text-muted-foreground text-sm">Articles à réapprovisionner</p>
             </CardContent>
           </Card>
-          
           <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Réceptions attendues</CardTitle>
+              <CardTitle className="text-lg">Stock optimal</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-500">
-                {stocks.filter(stock => stock.expected > 0).length}
+              <div className="text-3xl font-bold text-green-500">
+                {stocks.filter(stock => stock.quantity >= stock.minQuantity && stock.quantity <= stock.maxQuantity).length}
               </div>
-              <p className="text-muted-foreground text-sm">Articles en attente</p>
+              <p className="text-muted-foreground text-sm">Articles bien approvisionnés</p>
             </CardContent>
           </Card>
         </div>
-
         {/* Outils de recherche et boutons d'action */}
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="relative flex-1">
@@ -271,7 +246,6 @@ const StockPage = () => {
                 <StockMovementForm isEntry={true} />
               </DialogContent>
             </Dialog>
-
             <Dialog open={isStockExitDialogOpen} onOpenChange={setIsStockExitDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -288,13 +262,11 @@ const StockPage = () => {
                 <StockMovementForm isEntry={false} />
               </DialogContent>
             </Dialog>
-
             <Button>
               <Plus className="h-4 w-4 mr-2" /> Commande
             </Button>
           </div>
         </div>
-
         {/* Tableau des stocks */}
         <div className="rounded-md border shadow-sm">
           <Table>
@@ -303,30 +275,30 @@ const StockPage = () => {
                 <TableHead>Code</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead className="text-right">Stock disponible</TableHead>
-                <TableHead className="text-right">Stock réservé</TableHead>
-                <TableHead className="text-right">Stock attendu</TableHead>
-                <TableHead className="text-right">Stock total</TableHead>
+                <TableHead className="text-right">Stock minimum</TableHead>
+                <TableHead className="text-right">Stock maximum</TableHead>
+                <TableHead>Emplacement</TableHead>
                 <TableHead className="text-center">État</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredStocks.length > 0 ? (
                 filteredStocks.map((stock) => {
-                  const totalStock = stock.available + stock.reserved;
-                  const stockStatus = stock.available < 30 ? "low" : stock.available < 100 ? "medium" : "good";
-                  
+                  const stockStatus = 
+                    stock.quantity < stock.minQuantity ? "low" :
+                    stock.quantity > stock.maxQuantity ? "high" : "good";
                   return (
-                    <TableRow key={stock.articleId}>
+                    <TableRow key={stock.id}>
                       <TableCell className="font-medium">{stock.articleCode}</TableCell>
                       <TableCell>{stock.articleName}</TableCell>
-                      <TableCell className="text-right">{stock.available}</TableCell>
-                      <TableCell className="text-right">{stock.reserved}</TableCell>
-                      <TableCell className="text-right">{stock.expected}</TableCell>
-                      <TableCell className="text-right">{totalStock}</TableCell>
+                      <TableCell className="text-right">{stock.quantity}</TableCell>
+                      <TableCell className="text-right">{stock.minQuantity}</TableCell>
+                      <TableCell className="text-right">{stock.maxQuantity}</TableCell>
+                      <TableCell>{stock.location}</TableCell>
                       <TableCell className="text-center">
                         <span className={`inline-block rounded-full h-3 w-3 ${
                           stockStatus === "low" ? "bg-destructive" : 
-                          stockStatus === "medium" ? "bg-orange-400" : "bg-green-500"
+                          stockStatus === "high" ? "bg-orange-400" : "bg-green-500"
                         }`} />
                       </TableCell>
                     </TableRow>

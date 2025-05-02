@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -61,7 +60,7 @@ export function CBNForm({ articles, periods, onCalculate, isLoading = false }: C
       leadTime: 0,
       lotSize: 1,
       periods: periods.map(period => ({
-        periodId: period.id,
+        periodId: period.periodId,
         grossRequirements: 0,
         scheduledReceipts: 0,
       })),
@@ -69,7 +68,7 @@ export function CBNForm({ articles, periods, onCalculate, isLoading = false }: C
   });
 
   const handleArticleChange = (articleId: string) => {
-    const article = articles.find(a => a.id === articleId);
+    const article = articles.find(a => a.articleId.toString() === articleId);
     setSelectedArticle(article || null);
     
     if (article) {
@@ -115,8 +114,8 @@ export function CBNForm({ articles, periods, onCalculate, isLoading = false }: C
                       </FormControl>
                       <SelectContent>
                         {articles.map((article) => (
-                          <SelectItem key={article.id} value={article.id}>
-                            {article.code} - {article.name}
+                          <SelectItem key={article.articleId} value={article.articleId.toString()}>
+                            {article.code_bare} - {article.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -213,8 +212,8 @@ export function CBNForm({ articles, periods, onCalculate, isLoading = false }: C
                     </thead>
                     <tbody>
                       {periods.map((period, index) => (
-                        <tr key={period.id} className={index % 2 === 0 ? 'bg-muted/30' : ''}>
-                          <td className="py-2 px-4 border">{period.name}</td>
+                        <tr key={period.periodId} className={index % 2 === 0 ? 'bg-muted/30' : ''}>
+                          <td className="py-2 px-4 border">{period.periodName}</td>
                           <td className="py-2 px-4 border">
                             <Input
                               type="number"
@@ -226,7 +225,7 @@ export function CBNForm({ articles, periods, onCalculate, isLoading = false }: C
                             <input 
                               type="hidden" 
                               {...form.register(`periods.${index}.periodId`)} 
-                              value={period.id} 
+                              value={period.periodId} 
                             />
                           </td>
                           <td className="py-2 px-4 border">

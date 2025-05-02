@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import {
   useReactTable,
@@ -31,10 +30,12 @@ import {
   Tag,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Article, ArticleStatus, ArticleType } from "@/lib/types";
+import { Article, ArticleType } from "@/lib/types";
+
+type ArticleStatus = "RAW_MATERIAL" | "FINISHED";
 
 interface ArticlesTableProps {
-  data: Article[];
+  articles: Article[];
   onEdit: (article: Article) => void;
   onDelete: (article: Article) => void;
   onView: (article: Article) => void;
@@ -55,80 +56,89 @@ const typeLabels: ArticleTypeLabel = {
 };
 
 const statusLabels: ArticleStatusLabel = {
-  active: "Actif",
-  inactive: "Inactif",
-  discontinued: "Abandonné",
-  pending: "En attente",
+  RAW_MATERIAL: "Matière première",
+  FINISHED: "Produit fini",
 };
 
-export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableProps) {
+export function ArticlesTable({ 
+  articles = [], 
+  onEdit, 
+  onDelete, 
+  onView,
+}: ArticlesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const columns = useMemo<ColumnDef<Article>[]>(
     () => [
       {
-        accessorFn: (row) => row.code_bare || row.code,
+        accessorFn: (row) => row.code_bare || row.code || "-",
         id: "code_bare",
         header: "Code",
         cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
       },
       {
-        accessorFn: (row) => row.articleName || row.name,
-        id: "articleName",
-        header: "Nom",
+        accessorFn: (row) => row.name || "-",
+        id: "name",
+        header: "Name",
       },
       {
-        accessorKey: "articleDescription",
+        accessorFn: (row) => row.articleDescription || "-",
+        id: "description",
         header: "Description",
-        cell: (info) => {
-          const value = info.getValue() as string | undefined;
-          return value || "-";
-        },
       },
       {
-        accessorKey: "type",
+        accessorFn: (row) => {
+          if (row.isArticleAchte) return "raw";
+          if (row.isArticleFabrique) return "component";
+          return "finished";
+        },
+        id: "type",
         header: "Type",
         cell: (info) => {
           const type = info.getValue() as ArticleType;
-          return type ? (
+          return (
             <div className="flex items-center">
               <Tag className="h-4 w-4 mr-1" />
               <span>{typeLabels[type] || type}</span>
             </div>
-          ) : "-";
+          );
         },
       },
       {
-        accessorKey: "unit",
+        accessorFn: (row) => row.unit || "-",
+        id: "unit",
         header: "Unité",
       },
       {
-        accessorFn: (row) => row.safetyStock || row.stockSecurity,
+        accessorFn: (row) => row.safetyStock || row.stockSecurity || 0,
         id: "safetyStock",
         header: "Stock sécu.",
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
       {
-        accessorFn: (row) => row.delaidoptention || row.leadTime,
+        accessorFn: (row) => row.delaidoptention || row.leadTime || 0,
         id: "delaidoptention",
         header: "Délai (j)",
         cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
       },
       {
-        accessorKey: "lotSize",
+        accessorFn: (row) => row.lotSize || 0,
+        id: "lotSize",
         header: "Lot",
-        cell: (info) => <div className="text-right">{info.getValue() as number}</div>,
+        cell: (info) => {
+          const value = info.getValue() as number;
+          return <div className="text-right">{value > 0 ? value : "-"}</div>;
+        },
       },
       {
-        accessorFn: (row) => row.unitPrice || row.price,
+        accessorFn: (row) => row.unitPrice || row.price || 0,
         id: "unitPrice",
         header: "Prix",
         cell: (info) => <div className="text-right">{(info.getValue() as number).toFixed(2)} €</div>,
       },
       {
-        accessorFn: (row) => row.tva || row.TVA,
-        id: "tva",
+        accessorKey: "TVA",
         header: "TVA",
         cell: (info) => {
           const value = info.getValue() as number | undefined;
@@ -136,44 +146,36 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         },
       },
       {
-        accessorKey: "fournisseur",
+        accessorFn: (row) => row.Fournisseur || row.supplier || "-",
+        id: "fournisseur",
         header: "Fournisseur",
-        cell: (info) => {
-          const value = info.getValue() as string | undefined;
-          return value || "-";
-        },
       },
       {
-        accessorFn: (row) => row.articleFabrique || row.isArticleFabrique,
-        id: "articleFabrique",
+        accessorKey: "isArticleFabrique",
         header: "Fabriqué",
         cell: (info) => {
-          const value = info.getValue() as boolean | undefined;
+          const value = info.getValue() as boolean;
           return value ? "Oui" : "Non";
         },
       },
       {
-        accessorFn: (row) => row.articleAchte || row.isArticleAchete,
-        id: "articleAchte",
+        accessorKey: "isArticleAchte",
         header: "Acheté",
         cell: (info) => {
-          const value = info.getValue() as boolean | undefined;
+          const value = info.getValue() as boolean;
           return value ? "Oui" : "Non";
         },
       },
       {
-        accessorFn: (row) => row.status,
+        accessorFn: (row) => row.status || "RAW_MATERIAL",
         id: "status",
         header: "Statut",
         cell: (info) => {
-          const status = info.getValue() as ArticleStatus | undefined;
-          if (!status) return "-";
+          const status = info.getValue() as ArticleStatus;
           
           const statusClasses = {
-            active: "bg-green-100 text-green-800",
-            inactive: "bg-gray-100 text-gray-800",
-            discontinued: "bg-red-100 text-red-800",
-            pending: "bg-yellow-100 text-yellow-800",
+            RAW_MATERIAL: "bg-blue-100 text-blue-800",
+            FINISHED: "bg-green-100 text-green-800",
           };
           
           return (
@@ -207,7 +209,7 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
   );
 
   const table = useReactTable({
-    data,
+    data: articles,
     columns,
     state: {
       sorting,
@@ -217,13 +219,7 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
   });
 
   return (
@@ -232,120 +228,60 @@ export function ArticlesTable({ data, onEdit, onDelete, onView }: ArticlesTableP
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher..."
+            placeholder="Search..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="max-w-sm"
           />
         </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Lignes par page</p>
-            <select
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => {
-                table.setPageSize(Number(e.target.value));
-              }}
-              className="h-8 w-16 rounded-md border border-input bg-transparent"
-            >
-              {[5, 10, 20, 30, 40, 50].map((pageSize) => (
-                <option key={pageSize} value={pageSize}>
-                  {pageSize}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
       </div>
-
-      <div className="rounded-md border shadow-sm overflow-x-auto">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : (
-                      <div
-                        className={
-                          header.column.getCanSort() ? "cursor-pointer select-none" : undefined
-                        }
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: " 🔼",
-                          desc: " 🔽",
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
-                    )}
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Aucun article trouvé
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="flex items-center justify-between space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
     </div>
   );

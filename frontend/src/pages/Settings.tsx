@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,7 +53,8 @@ const SettingsPage = () => {
     { id: "5", name: "Litre", symbol: "L", type: "volume" },
     { id: "6", name: "Millilitre", symbol: "mL", type: "volume" },
     { id: "7", name: "Pièce", symbol: "pcs", type: "unit" },
-    { id: "8", name: "Lot", symbol: "lot", type: "unit" }
+    { id: "8", name: "Lot", symbol: "lot", type: "unit" },
+    { id: "9", name: "Boîte", symbol: "bte", type: "unit" }
   ]);
 
   // État pour le nouvel ajout d'unité
@@ -123,7 +123,6 @@ const SettingsPage = () => {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col space-y-2">
           <h1 className="text-3xl font-bold">Paramètres</h1>
@@ -376,7 +375,6 @@ const SettingsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,7 @@ const NavItem = ({ to, label, icon, isActive, onClick }: NavItemProps) => (
       variant="ghost"
       className={cn(
         "w-full justify-start gap-3 font-normal",
-        isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+        isActive && "bg-primary text-primary-foreground"
       )}
     >
       {icon}
@@ -86,11 +85,11 @@ const Sidebar = ({ isMobile, isCollapsed, activeRoute, onToggleSidebar }: Sideba
   return (
     <div
       className={cn(
-        "bg-sidebar text-sidebar-foreground h-screen flex flex-col transition-all duration-300",
+        "bg-primary text-primary-foreground h-screen flex flex-col transition-all duration-300",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
+      <div className="flex items-center justify-between p-4 border-b border-primary-border">
         <div className="flex items-center">
           {!isCollapsed && <h1 className="text-xl font-bold">GPAO Nexus</h1>}
           {isCollapsed && <span className="text-xl font-bold">GN</span>}
@@ -114,7 +113,7 @@ const Sidebar = ({ isMobile, isCollapsed, activeRoute, onToggleSidebar }: Sideba
         </nav>
       </div>
 
-      <div className="p-4 border-t border-sidebar-border text-sm">
+      <div className="p-4 border-t border-primary-border text-sm">
         {!isCollapsed && <span>GPAO Nexus v1.0</span>}
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Bell, Sun, Moon, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,12 +13,12 @@ const Header = ({ isDarkMode, onToggleDarkMode }: HeaderProps) => {
   const [notifications, setNotifications] = useState<number>(3);
 
   return (
-    <header className="w-full h-16 bg-background border-b border-border px-4 flex items-center justify-between">
+    <header className="w-full h-16 bg-background border-b border-border px-6 flex items-center justify-between">
       <div className="flex-1">
         {isMobile && <h1 className="text-lg font-bold">GPAO Nexus</h1>}
       </div>
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="relative" onClick={() => setNotifications(0)}>
           <Bell size={20} />
           {notifications > 0 && (

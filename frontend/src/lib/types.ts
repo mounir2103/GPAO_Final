@@ -1,60 +1,63 @@
-
+// src/lib/types.ts
 // Types pour la gestion des articles et stocks
 
 export type ArticleType = 'raw' | 'component' | 'finished';
-export type ArticleStatus = 'active' | 'inactive' | 'discontinued' | 'pending';
+export type ArticleStatus = 'RAW_MATERIAL' | 'FINISHED';
 
 export interface Article {
-  id: string;
+  articleId: number;
   code_bare: string;
-  articleName: string;
-  articleDescription?: string;
+  name: string;
+  articleDescription: string;
   unitPrice: number;
-  tva: number;
-  fournisseur?: string;
+  TVA: number;
+  Fournisseur: string;
   delaidoptention: number;
-  status?: ArticleStatus;
-  articleFabrique: boolean;
-  articleAchte: boolean;
+  status: ArticleStatus;
+  isArticleFabrique: boolean;
+  isArticleAchte: boolean;
   safetyStock: number;
-  // Pour la compatibilité avec le code existant
+  bomEntries: ArticleComponent[];
+  // Properties needed for CBN calculation
+  stockSecurity: number;
+  leadTime: number;
+  lotSize: number;
+  components?: ArticleComponent[];
+  // Legacy properties for compatibility
   code?: string;
-  name?: string;
   type?: ArticleType;
   unit?: string;
-  stockSecurity?: number;
-  leadTime?: number;
-  lotSize?: number;
   price?: number;
-  TVA?: number;
-  isArticleFabrique?: boolean;
-  isArticleAchete?: boolean;
-  // Pour les composants ou produits finis
-  components?: ArticleComponent[];
+  supplier?: string;
+  isActive?: boolean;
+  // Stock quantity
+  quantity: number;
 }
 
 export interface ArticleComponent {
-  articleId: string;
-  articleCode?: string;
-  articleName?: string;
+  articleId: number;
+  parentArticle?: Article;
+  childArticle?: Article;
   quantity: number;
 }
 
 export interface Stock {
-  articleId: string;
-  articleCode?: string;
-  articleName?: string;
-  available: number;
-  reserved: number;
-  expected: number;
-  date?: Date;
+  id: number;
+  articleId: number;
+  articleName: string;
+  articleCode: string;
+  quantity: number;
+  minQuantity: number;
+  maxQuantity: number;
+  lastUpdated: string;
+  location: string;
 }
 
 export interface PlanningPeriod {
-  id: number;
-  name: string;
-  startDate: Date;
-  endDate: Date;
+  periodId: number;
+  periodName?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface CBNInput {
@@ -64,7 +67,7 @@ export interface CBNInput {
 }
 
 export interface CBNCalculation {
-  articleId: string;
+  articleId: number;
   periods: CBNPeriod[];
 }
 
@@ -77,6 +80,7 @@ export interface CBNPeriod {
   netRequirements: number;
   plannedOrders: number;
   plannedOrderReleases: number;
+  plannedOrderReceipts: number;
 }
 
 export interface SupplierOrder {
@@ -106,6 +110,8 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+  status?: number;
+  details?: string;
 }
 
 export interface PageRequest {
@@ -115,30 +121,44 @@ export interface PageRequest {
 }
 
 export interface PageResponse<T> {
-  content: T[];
+  list: T[];
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  pageSize: number;
+  pageNumber: number;
+  firstPage: boolean;
+  lastPage: boolean;
 }
 
 export interface ArticleDTO {
-  id?: string;
+  articleId?: number;
   code_bare: string;
   articleName: string;
-  articleDescription?: string;
+  articleDescription: string;
   unitPrice: number;
-  tva: number;
-  fournisseur?: string;
+  TVA: number;
+  Fournisseur: string;
   delaidoptention: number;
-  status?: ArticleStatus;
-  articleFabrique: boolean;
-  articleAchte: boolean;
+  status: ArticleStatus;
+  isArticleFabrique: boolean;
+  isArticleAchte: boolean;
   safetyStock: number;
-  type?: ArticleType;
-  unit?: string;
+  lotSize: number;
+  type: ArticleType;
+  unit: string;
+}
+
+export interface CBNEntity {
+  id: number;
+  articleId: number;
+  periodId: number;
+  periodName: string;
+  grossRequirements: number;
+  scheduledReceipts: number;
+  projectedInventory: number;
+  netRequirements: number;
+  plannedOrders: number;
+  plannedOrderReleases: number;
+  createdDate: string;
 }
 

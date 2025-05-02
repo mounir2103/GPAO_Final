@@ -1,0 +1,46 @@
+package com.solution.tp_gpao.articles;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.solution.tp_gpao.boms.BomEntity;
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "Article")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class ArticleEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long articleId;
+    @Column(nullable = false , unique = true , updatable = false)
+    private String code_bare;
+    private String name;
+    @Column(length = 500)
+    private String articleDescription;
+    private double unitPrice;
+    private double TVA;
+    private String Fournisseur;
+    private Integer delaidoptention;
+    @Enumerated(EnumType.STRING)
+    private ArticleStatus status;
+    private boolean isArticleFabrique;
+    private boolean isArticleAchte;
+    private Integer safetyStock;
+    private Integer lotSize;
+    private String type;
+    private String unit;
+    @OneToMany(mappedBy = "parentArticle", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    @JsonIgnore
+    private List<BomEntity> bomEntries = new ArrayList<>();
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdDate;
+}

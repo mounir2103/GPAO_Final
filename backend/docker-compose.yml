@@ -1,0 +1,51 @@
+services:
+  postgres-db:
+    container_name: gpao_db
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ayoub
+      POSTGRES_PASSWORD: ahfhjdfjeiijk
+      POSTGRES_DB: gpao
+    ports:
+      - '5420:5432'
+    volumes:
+      - gpao-db:/var/lib/postgresql/data
+    networks:
+      - gpao_project
+
+  backend:
+    container_name: gpao_backend
+    build:
+      context: ./implementation/tp_gpao
+      dockerfile: Dockerfile
+    ports:
+      - '8095:8095'
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/gpao
+      - SPRING_DATASOURCE_USERNAME=ayoub
+      - SPRING_DATASOURCE_PASSWORD=ahfhjdfjeiijk
+    depends_on:
+      - postgres-db
+    networks:
+      - gpao_project
+
+  frontend:
+    container_name: gpao_frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8095/api/v1/
+    ports:
+      - '3000:8080'
+    depends_on:
+      - backend
+    networks:
+      - gpao_project
+
+volumes:
+  gpao-db:
+
+networks:
+  gpao_project:
+    driver: bridge

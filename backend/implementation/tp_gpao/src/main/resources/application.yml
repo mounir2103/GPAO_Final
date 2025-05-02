@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: tp_gpao
+    security:
+      jwt:
+        secret-key: cddd4adecfaad4016ce03a65e75a5dceb98d9361952ad1127105382564e3e3ad32d270ac15af7f8fbc2915d0b6c7d34395ecef53d7e4149f402f92ddadb3b5f3
+        expiration: 8640000
+
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/gpao
+    username: ayoub
+    password: ahfhjdfjeiijk
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+
+  # CORS Configuration
+  web:
+    cors:
+      allowed-origins: "http://localhost:3000"
+      allowed-methods: "*"
+      allowed-headers: "*"
+      allow-credentials: true
+
+springdoc:
+    default-consumes-media-type: application/json
+server:
+  servlet:
+    context-path: /api/v1/
+  port: 8095
+

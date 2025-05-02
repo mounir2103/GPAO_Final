@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/gpao_tp.iml" filepath="$PROJECT_DIR$/.idea/gpao_tp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/implementation/tp_gpao/tp_gpao.iml" filepath="$PROJECT_DIR$/implementation/tp_gpao/tp_gpao.iml" />
+    </modules>
+  </component>
+</project>

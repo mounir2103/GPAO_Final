@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ import java.util.List;
 @Tag(name = "Stock")
 public class StockController {
     private final StockService stockService;
+    @Autowired
+    private StockTransactionRepository stockTransactionRepository;
 
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping
@@ -41,5 +44,12 @@ public class StockController {
             @PathVariable Long articleId,
             @RequestParam int adjustment) {
         return ResponseEntity.ok(stockService.adjustStock(articleId, adjustment));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @GetMapping("/{articleId}/transactions")
+    public ResponseEntity<List<StockTransaction>> getTransactions(@PathVariable Long articleId) {
+        StockEntity stock = stockService.getStockEntityByArticleId(articleId);
+        return ResponseEntity.ok(stockTransactionRepository.findByStock_Id(stock.getId()));
     }
 } 

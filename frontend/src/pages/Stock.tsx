@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,44 +27,48 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Stock } from "@/lib/types";
+import { Stock, StockTransaction } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Search, Plus, ArrowDown, ArrowUp } from "lucide-react";
-
-const mockStocks: Stock[] = [
-  {
-    id: 1,
-    articleId: 1,
-    articleName: "Vis M6",
-    articleCode: "VIS-M6",
-    quantity: 120,
-    minQuantity: 50,
-    maxQuantity: 200,
-    lastUpdated: "2024-06-01",
-    location: "A1"
-  },
-  {
-    id: 2,
-    articleId: 2,
-    articleName: "Plaque acier",
-    articleCode: "PLAQUE-ACIER",
-    quantity: 30,
-    minQuantity: 20,
-    maxQuantity: 100,
-    lastUpdated: "2024-06-01",
-    location: "B2"
-  }
-];
+import { stockService, orderService } from "@/services/api";
 
 const StockPage = () => {
-  const [stocks, setStocks] = useState<Stock[]>(mockStocks);
-  const [loading, setLoading] = useState(false);
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isStockEntryDialogOpen, setIsStockEntryDialogOpen] = useState<boolean>(false);
   const [isStockExitDialogOpen, setIsStockExitDialogOpen] = useState<boolean>(false);
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [stockQuantity, setStockQuantity] = useState<number>(0);
+
+  // State for edit and history dialogs
+  const [editStock, setEditStock] = useState<Stock | null>(null);
+  const [historyStock, setHistoryStock] = useState<Stock | null>(null);
+  const [transactions, setTransactions] = useState<StockTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [orderArticle, setOrderArticle] = useState<Stock | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStocks();
+  }, []);
+
+  const fetchStocks = async () => {
+    setLoading(true);
+    try {
+      const response = await stockService.getAllStocks();
+      setStocks(response.success && response.data ? response.data : []);
+      setAuthError(null);
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrer les articles
   const filteredStocks = stocks.filter(stock => {
@@ -72,38 +76,83 @@ const StockPage = () => {
            stock.articleName?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  console.log('stocks:', stocks);
+  console.log('filteredStocks:', filteredStocks);
+
+  // Improved error handling for authentication
+  const handleApiError = (error: any) => {
+    if (error?.response?.status === 401) {
+      setAuthError("Votre session a expiré ou vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+    } else {
+      toast.error(error?.message || "Erreur inconnue");
+    }
+  };
+
   // Fonction pour ajouter du stock
-  const handleStockEntry = () => {
+  const handleStockEntry = async () => {
     if (!selectedArticleId || stockQuantity <= 0) {
       toast.error("Veuillez sélectionner un article et entrer une quantité valide");
       return;
     }
-    setStocks(prev => prev.map(stock =>
-      stock.articleId === selectedArticleId
-        ? { ...stock, quantity: stock.quantity + stockQuantity }
-        : stock
-    ));
-    toast.success(`Entrée de stock de ${stockQuantity} unités enregistrée`);
+    try {
+      await stockService.adjustStock(selectedArticleId, stockQuantity);
+      toast.success(`Entrée de stock de ${stockQuantity} unités enregistrée`);
+      fetchStocks();
+      setAuthError(null);
+    } catch (error) {
+      handleApiError(error);
+    }
     setIsStockEntryDialogOpen(false);
     setSelectedArticleId(null);
     setStockQuantity(0);
   };
 
   // Fonction pour sortir du stock
-  const handleStockExit = () => {
+  const handleStockExit = async () => {
     if (!selectedArticleId || stockQuantity <= 0) {
       toast.error("Veuillez sélectionner un article et entrer une quantité valide");
       return;
     }
-    setStocks(prev => prev.map(stock =>
-      stock.articleId === selectedArticleId
-        ? { ...stock, quantity: Math.max(0, stock.quantity - stockQuantity) }
-        : stock
-    ));
-    toast.success(`Sortie de stock de ${stockQuantity} unités enregistrée`);
+    try {
+      await stockService.adjustStock(selectedArticleId, -stockQuantity);
+      toast.success(`Sortie de stock de ${stockQuantity} unités enregistrée`);
+      fetchStocks();
+      setAuthError(null);
+    } catch (error) {
+      handleApiError(error);
+    }
     setIsStockExitDialogOpen(false);
     setSelectedArticleId(null);
     setStockQuantity(0);
+  };
+
+  // Edit stock handler
+  const handleEditStock = async (stock: Stock) => {
+    setEditStock(stock);
+  };
+  const handleSaveEditStock = async (updated: Partial<Stock>) => {
+    if (!editStock) return;
+    try {
+      await stockService.updateStock(editStock.articleId, updated);
+      toast.success("Stock mis à jour");
+      setEditStock(null);
+      fetchStocks();
+    } catch (error) {
+      toast.error("Erreur lors de la mise à jour du stock");
+    }
+  };
+
+  // History handler
+  const handleShowHistory = async (stock: Stock) => {
+    setHistoryStock(stock);
+    setLoadingTransactions(true);
+    const response = await stockService.getStockTransactions(stock.articleId);
+    setTransactions(response.success && response.data ? response.data : []);
+    setLoadingTransactions(false);
+  };
+  const handleCloseHistory = () => {
+    setHistoryStock(null);
+    setTransactions([]);
   };
 
   // Formulaire de mouvement de stock
@@ -165,157 +214,295 @@ const StockPage = () => {
     );
   };
 
+  // Commande (Order) logic
+  const handleOpenOrderDialog = (stock: Stock) => {
+    setOrderArticle(stock);
+    setOrderQuantity(1);
+    setOrderDialogOpen(true);
+  };
+  const handleCreateOrder = async () => {
+    if (!orderArticle || orderQuantity <= 0) return;
+    try {
+      // Example: create a supplier order (adapt as needed)
+      await orderService.getSupplierOrders(orderArticle.articleId.toString()); // Replace with real create order API
+      toast.success("Commande créée (simulation)");
+      setOrderDialogOpen(false);
+      setOrderArticle(null);
+      setOrderQuantity(1);
+      setAuthError(null);
+    } catch (error) {
+      handleApiError(error);
+    }
+  };
+
   if (loading) {
+    console.log('Loading...');
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
     );
   }
 
+  if (authError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-red-500 text-lg">{authError}</div>
+      </div>
+    );
+  }
+
+  console.log('Rendering stock page UI');
+
   return (
-    <Layout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-3xl font-bold">Gestion des Stocks</h1>
-          <p className="text-muted-foreground">
-            Suivez l'état des stocks et gérez les mouvements d'entrée et sortie
-          </p>
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold">Gestion des Stocks</h1>
+        <p className="text-muted-foreground">
+          Suivez l'état des stocks et gérez les mouvements d'entrée et sortie
+        </p>
+      </div>
+      {/* Résumé des stocks */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Total articles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stocks.length}</div>
+            <p className="text-muted-foreground text-sm">Articles en stock</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Stock faible</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-500">
+              {stocks.filter(stock => stock.quantity < stock.minQuantity).length}
+            </div>
+            <p className="text-muted-foreground text-sm">Articles à réapprovisionner</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Stock optimal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-500">
+              {stocks.filter(stock => stock.quantity >= stock.minQuantity && stock.quantity <= stock.maxQuantity).length}
+            </div>
+            <p className="text-muted-foreground text-sm">Articles bien approvisionnés</p>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Outils de recherche et boutons d'action */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input 
+            placeholder="Rechercher par code ou nom..." 
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        {/* Résumé des stocks */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Total articles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stocks.length}</div>
-              <p className="text-muted-foreground text-sm">Articles en stock</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Stock faible</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-500">
-                {stocks.filter(stock => stock.quantity < stock.minQuantity).length}
-              </div>
-              <p className="text-muted-foreground text-sm">Articles à réapprovisionner</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Stock optimal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-500">
-                {stocks.filter(stock => stock.quantity >= stock.minQuantity && stock.quantity <= stock.maxQuantity).length}
-              </div>
-              <p className="text-muted-foreground text-sm">Articles bien approvisionnés</p>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Outils de recherche et boutons d'action */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input 
-              placeholder="Rechercher par code ou nom..." 
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={isStockEntryDialogOpen} onOpenChange={setIsStockEntryDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <ArrowDown className="h-4 w-4 mr-2" /> Entrée stock
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Entrée de stock</DialogTitle>
-                  <DialogDescription>
-                    Enregistrez une entrée de stock pour un article
-                  </DialogDescription>
-                </DialogHeader>
-                <StockMovementForm isEntry={true} />
-              </DialogContent>
-            </Dialog>
-            <Dialog open={isStockExitDialogOpen} onOpenChange={setIsStockExitDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <ArrowUp className="h-4 w-4 mr-2" /> Sortie stock
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Sortie de stock</DialogTitle>
-                  <DialogDescription>
-                    Enregistrez une sortie de stock pour un article
-                  </DialogDescription>
-                </DialogHeader>
-                <StockMovementForm isEntry={false} />
-              </DialogContent>
-            </Dialog>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Commande
-            </Button>
-          </div>
-        </div>
-        {/* Tableau des stocks */}
-        <div className="rounded-md border shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Nom</TableHead>
-                <TableHead className="text-right">Stock disponible</TableHead>
-                <TableHead className="text-right">Stock minimum</TableHead>
-                <TableHead className="text-right">Stock maximum</TableHead>
-                <TableHead>Emplacement</TableHead>
-                <TableHead className="text-center">État</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStocks.length > 0 ? (
-                filteredStocks.map((stock) => {
-                  const stockStatus = 
-                    stock.quantity < stock.minQuantity ? "low" :
-                    stock.quantity > stock.maxQuantity ? "high" : "good";
-                  return (
-                    <TableRow key={stock.id}>
-                      <TableCell className="font-medium">{stock.articleCode}</TableCell>
-                      <TableCell>{stock.articleName}</TableCell>
-                      <TableCell className="text-right">{stock.quantity}</TableCell>
-                      <TableCell className="text-right">{stock.minQuantity}</TableCell>
-                      <TableCell className="text-right">{stock.maxQuantity}</TableCell>
-                      <TableCell>{stock.location}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={`inline-block rounded-full h-3 w-3 ${
-                          stockStatus === "low" ? "bg-destructive" : 
-                          stockStatus === "high" ? "bg-orange-400" : "bg-green-500"
-                        }`} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    Aucun article trouvé
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <div className="flex gap-2">
+          <Dialog open={isStockEntryDialogOpen} onOpenChange={setIsStockEntryDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <ArrowDown className="h-4 w-4 mr-2" /> Entrée stock
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Entrée de stock</DialogTitle>
+                <DialogDescription>
+                  Enregistrez une entrée de stock pour un article
+                </DialogDescription>
+              </DialogHeader>
+              <StockMovementForm isEntry={true} />
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isStockExitDialogOpen} onOpenChange={setIsStockExitDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <ArrowUp className="h-4 w-4 mr-2" /> Sortie stock
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Sortie de stock</DialogTitle>
+                <DialogDescription>
+                  Enregistrez une sortie de stock pour un article
+                </DialogDescription>
+              </DialogHeader>
+              <StockMovementForm isEntry={false} />
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => handleOpenOrderDialog(stocks.find(stock => stock.articleId === selectedArticleId) || null)}>
+            <Plus className="h-4 w-4 mr-2" /> Commande
+          </Button>
         </div>
       </div>
-    </Layout>
+      {/* Tableau des stocks */}
+      <div className="rounded-md border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code</TableHead>
+              <TableHead>Nom</TableHead>
+              <TableHead className="text-right">Stock disponible</TableHead>
+              <TableHead className="text-right">Stock minimum</TableHead>
+              <TableHead className="text-right">Stock maximum</TableHead>
+              <TableHead>Emplacement</TableHead>
+              <TableHead className="text-center">État</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredStocks.length > 0 ? (
+              filteredStocks.map((stock) => {
+                const stockStatus = 
+                  stock.quantity < stock.minQuantity ? "low" :
+                  stock.quantity > stock.maxQuantity ? "high" : "good";
+                return (
+                  <TableRow key={stock.id}>
+                    <TableCell className="font-medium">{stock.articleCode}</TableCell>
+                    <TableCell>{stock.articleName}</TableCell>
+                    <TableCell className="text-right">{stock.quantity}</TableCell>
+                    <TableCell className="text-right">{stock.minQuantity}</TableCell>
+                    <TableCell className="text-right">{stock.maxQuantity}</TableCell>
+                    <TableCell>{stock.location}</TableCell>
+                    <TableCell className="text-center">
+                      <span className={`inline-block rounded-full h-3 w-3 ${
+                        stockStatus === "low" ? "bg-destructive" : 
+                        stockStatus === "high" ? "bg-orange-400" : "bg-green-500"
+                      }`} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button size="sm" variant="outline" onClick={() => handleEditStock(stock)}>Éditer</Button>
+                      <Button size="sm" variant="outline" className="ml-2" onClick={() => handleShowHistory(stock)}>Historique</Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  Aucun article trouvé
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {/* Edit Dialog */}
+      {editStock && (
+        <Dialog open={!!editStock} onOpenChange={() => setEditStock(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Éditer le stock</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label>Stock minimum</Label>
+              <Input
+                type="number"
+                value={editStock.minQuantity}
+                onChange={e => setEditStock({ ...editStock, minQuantity: Number(e.target.value) })}
+              />
+              <Label>Stock maximum</Label>
+              <Input
+                type="number"
+                value={editStock.maxQuantity}
+                onChange={e => setEditStock({ ...editStock, maxQuantity: Number(e.target.value) })}
+              />
+              <Label>Emplacement</Label>
+              <Input
+                value={editStock.location}
+                onChange={e => setEditStock({ ...editStock, location: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditStock(null)}>Annuler</Button>
+              <Button onClick={() => handleSaveEditStock({
+                minQuantity: editStock.minQuantity,
+                maxQuantity: editStock.maxQuantity,
+                location: editStock.location
+              })}>Enregistrer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {/* History Dialog */}
+      {historyStock && (
+        <Dialog open={!!historyStock} onOpenChange={handleCloseHistory}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Historique des mouvements pour {historyStock.articleName}</DialogTitle>
+            </DialogHeader>
+            {loadingTransactions ? (
+              <div>Chargement...</div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Quantité</TableHead>
+                      <TableHead>Utilisateur</TableHead>
+                      <TableHead>Note</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.length > 0 ? transactions.map(tx => (
+                      <TableRow key={tx.id}>
+                        <TableCell>{new Date(tx.timestamp).toLocaleString()}</TableCell>
+                        <TableCell>{tx.type === "ENTRY" ? "Entrée" : "Sortie"}</TableCell>
+                        <TableCell>{tx.quantityChange}</TableCell>
+                        <TableCell>{tx.user}</TableCell>
+                        <TableCell>{tx.note}</TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center">Aucun mouvement</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseHistory}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {/* Commande Dialog */}
+      {orderDialogOpen && orderArticle && (
+        <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Créer une commande pour {orderArticle.articleName}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label>Quantité</Label>
+              <Input
+                type="number"
+                min={1}
+                value={orderQuantity}
+                onChange={e => setOrderQuantity(Number(e.target.value))}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOrderDialogOpen(false)}>Annuler</Button>
+              <Button onClick={handleCreateOrder}>Commander</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
 

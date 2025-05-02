@@ -63,6 +63,13 @@ public class StockService {
         return convertToDTO(stockRepository.save(stock));
     }
 
+    public StockEntity getStockEntityByArticleId(Long articleId) {
+        ArticleEntity article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new RuntimeException("Article not found"));
+        return stockRepository.findByArticle(article)
+                .orElseThrow(() -> new RuntimeException("Stock not found"));
+    }
+
     private StockDTO convertToDTO(StockEntity stock) {
         return StockDTO.builder()
                 .id(stock.getId())

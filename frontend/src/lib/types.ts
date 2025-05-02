@@ -162,3 +162,12 @@ export interface CBNEntity {
   createdDate: string;
 }
 
+export interface StockTransaction {
+  id: number;
+  quantityChange: number;
+  type: "ENTRY" | "EXIT";
+  user: string;
+  timestamp: string;
+  note: string;
+}
+

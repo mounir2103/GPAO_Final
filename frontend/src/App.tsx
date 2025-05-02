@@ -5,6 +5,7 @@ import CBNPage from "@/pages/CBN";
 import LoginPage from "@/pages/Login";
 import RegisterPage from "@/pages/Register";
 import Dashboard from "@/pages/Index";
+import StockPage from "@/pages/Stock";
 import { authHelper } from "@/services/api";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,6 +33,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="articles" element={<ArticlesPage />} />
             <Route path="cbn" element={<CBNPage />} />
+            <Route path="stock" element={<StockPage />} />
           </Route>
         </Routes>
       </Router>

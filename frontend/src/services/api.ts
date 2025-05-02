@@ -12,7 +12,8 @@ import type {
   SupplierOrder,
   ManufacturingOrder,
   CBNEntity,
-  CBNPeriod
+  CBNPeriod,
+  StockTransaction
 } from '@/lib/types';
 
 // Base API configuration
@@ -343,9 +344,9 @@ export const stockService = {
   /**
    * Updates stock for an article
    */
-  updateStock: async (articleId: number, stockUpdate: Partial<Stock>): Promise<ApiResponse<Stock>> => {
+  updateStock: async (articleId: number, stock: Partial<Stock>): Promise<ApiResponse<Stock>> => {
     try {
-      const response = await apiClient.put<Stock>(`/stock/${articleId}`, stockUpdate);
+      const response = await apiClient.put<Stock>(`/stock/${articleId}`, stock);
       return { success: true, data: response.data };
     } catch (error: any) {
       return {
@@ -370,6 +371,19 @@ export const stockService = {
         success: false,
         error: error?.message || 'Error adjusting stock',
         status: error?.status
+      };
+    }
+  },
+
+  getStockTransactions: async (articleId: number): Promise<ApiResponse<StockTransaction[]>> => {
+    try {
+      const response = await apiClient.get<StockTransaction[]>(`/stock/${articleId}/transactions`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.response?.data?.message || 'Error fetching stock transactions',
+        status: error?.response?.status
       };
     }
   }

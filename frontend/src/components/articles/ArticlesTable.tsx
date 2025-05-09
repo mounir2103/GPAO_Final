@@ -72,8 +72,8 @@ export function ArticlesTable({
   const columns = useMemo<ColumnDef<Article>[]>(
     () => [
       {
-        accessorFn: (row) => row.code_bare || row.code || "-",
-        id: "code_bare",
+        accessorFn: (row) => row.codeBare || row.code || "-",
+        id: "codeBare",
         header: "Code",
         cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
       },
@@ -138,7 +138,7 @@ export function ArticlesTable({
         cell: (info) => <div className="text-right">{(info.getValue() as number).toFixed(2)} €</div>,
       },
       {
-        accessorKey: "TVA",
+        accessorKey: "tva",
         header: "TVA",
         cell: (info) => {
           const value = info.getValue() as number | undefined;
@@ -146,7 +146,7 @@ export function ArticlesTable({
         },
       },
       {
-        accessorFn: (row) => row.Fournisseur || row.supplier || "-",
+        accessorFn: (row) => row.fournisseur || row.supplier || "-",
         id: "fournisseur",
         header: "Fournisseur",
       },
@@ -191,13 +191,34 @@ export function ArticlesTable({
         cell: ({ row }) => {
           return (
             <div className="flex justify-center space-x-1">
-              <Button variant="ghost" size="icon" onClick={() => onView(row.original)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(row.original);
+                }}
+              >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(row.original);
+                }}
+              >
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onDelete(row.original)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(row.original);
+                }}
+              >
                 <Trash className="h-4 w-4" />
               </Button>
             </div>

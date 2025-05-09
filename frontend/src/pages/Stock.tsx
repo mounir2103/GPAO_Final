@@ -27,11 +27,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Stock, StockTransaction } from "@/lib/types";
+import { Stock, StockTransaction, Article } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Search, Plus, ArrowDown, ArrowUp } from "lucide-react";
-import { stockService, orderService } from "@/services/api";
+import { stockService, orderService, articleService } from "@/services/api";
 
 const StockPage = () => {
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -50,7 +50,9 @@ const StockPage = () => {
 
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [orderArticle, setOrderArticle] = useState<Stock | null>(null);
+  const [orderArticleDetails, setOrderArticleDetails] = useState<Article | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [orderDialogLoading, setOrderDialogLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -215,21 +217,40 @@ const StockPage = () => {
   };
 
   // Commande (Order) logic
-  const handleOpenOrderDialog = (stock: Stock) => {
+  const handleOpenOrderDialog = async (stock: Stock | null) => {
+    if (!stock) {
+      toast.error("Veuillez sélectionner un article pour commander.");
+      return;
+    }
     setOrderArticle(stock);
-    setOrderQuantity(1);
+    setOrderDialogLoading(true);
+    // Fetch the Article details for lotSize and delaidoptention
+    const res = await articleService.getArticleByName(stock.articleName);
+    if (res.success && res.data) {
+      setOrderArticleDetails(res.data);
+      setOrderQuantity(res.data.lotSize || 1);
+    } else {
+      setOrderArticleDetails(null);
+      setOrderQuantity(1);
+    }
     setOrderDialogOpen(true);
+    setOrderDialogLoading(false);
   };
   const handleCreateOrder = async () => {
-    if (!orderArticle || orderQuantity <= 0) return;
+    if (!orderArticle || !orderArticleDetails || orderQuantity <= 0) return;
     try {
-      // Example: create a supplier order (adapt as needed)
-      await orderService.getSupplierOrders(orderArticle.articleId.toString()); // Replace with real create order API
-      toast.success("Commande créée (simulation)");
+      await orderService.createSupplierOrder({
+        articleId: orderArticle.articleId,
+        quantity: orderQuantity,
+        expectedDate: new Date(Date.now() + (orderArticleDetails.delaidoptention || 0) * 24 * 60 * 60 * 1000),
+      });
+      toast.success("Commande créée avec succès");
       setOrderDialogOpen(false);
       setOrderArticle(null);
-      setOrderQuantity(1);
+      setOrderArticleDetails(null);
+      setOrderQuantity(orderArticleDetails.lotSize || 1);
       setAuthError(null);
+      fetchStocks();
     } catch (error) {
       handleApiError(error);
     }
@@ -290,7 +311,7 @@ const StockPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-500">
-              {stocks.filter(stock => stock.quantity >= stock.minQuantity && stock.quantity <= stock.maxQuantity).length}
+              {stocks.filter(stock => stock.quantity >= stock.minQuantity).length}
             </div>
             <p className="text-muted-foreground text-sm">Articles bien approvisionnés</p>
           </CardContent>
@@ -340,9 +361,17 @@ const StockPage = () => {
               <StockMovementForm isEntry={false} />
             </DialogContent>
           </Dialog>
-          <Button onClick={() => handleOpenOrderDialog(stocks.find(stock => stock.articleId === selectedArticleId) || null)}>
-            <Plus className="h-4 w-4 mr-2" /> Commande
-          </Button>
+          <div className="flex gap-2 items-center">
+            <Button 
+              onClick={() => handleOpenOrderDialog(stocks.find(stock => stock.articleId === selectedArticleId) || null)}
+              disabled={!selectedArticleId}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Commande
+            </Button>
+            {selectedArticleId && (
+              <span className="text-sm text-muted-foreground">Article sélectionné : {stocks.find(s => s.articleId === selectedArticleId)?.articleName}</span>
+            )}
+          </div>
         </div>
       </div>
       {/* Tableau des stocks */}
@@ -354,7 +383,6 @@ const StockPage = () => {
               <TableHead>Nom</TableHead>
               <TableHead className="text-right">Stock disponible</TableHead>
               <TableHead className="text-right">Stock minimum</TableHead>
-              <TableHead className="text-right">Stock maximum</TableHead>
               <TableHead>Emplacement</TableHead>
               <TableHead className="text-center">État</TableHead>
               <TableHead className="text-center">Actions</TableHead>
@@ -364,32 +392,34 @@ const StockPage = () => {
             {filteredStocks.length > 0 ? (
               filteredStocks.map((stock) => {
                 const stockStatus = 
-                  stock.quantity < stock.minQuantity ? "low" :
-                  stock.quantity > stock.maxQuantity ? "high" : "good";
+                  stock.quantity < stock.minQuantity ? "low" : "good";
                 return (
-                  <TableRow key={stock.id}>
+                  <TableRow
+                    key={stock.id}
+                    className={selectedArticleId === stock.articleId ? "bg-blue-100" : ""}
+                    onClick={() => setSelectedArticleId(stock.articleId)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <TableCell className="font-medium">{stock.articleCode}</TableCell>
                     <TableCell>{stock.articleName}</TableCell>
                     <TableCell className="text-right">{stock.quantity}</TableCell>
                     <TableCell className="text-right">{stock.minQuantity}</TableCell>
-                    <TableCell className="text-right">{stock.maxQuantity}</TableCell>
                     <TableCell>{stock.location}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-block rounded-full h-3 w-3 ${
-                        stockStatus === "low" ? "bg-destructive" : 
-                        stockStatus === "high" ? "bg-orange-400" : "bg-green-500"
+                        stockStatus === "low" ? "bg-destructive" : "bg-green-500"
                       }`} />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button size="sm" variant="outline" onClick={() => handleEditStock(stock)}>Éditer</Button>
-                      <Button size="sm" variant="outline" className="ml-2" onClick={() => handleShowHistory(stock)}>Historique</Button>
+                      <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleEditStock(stock); }}>Éditer</Button>
+                      <Button size="sm" variant="outline" className="ml-2" onClick={e => { e.stopPropagation(); handleShowHistory(stock); }}>Historique</Button>
                     </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   Aucun article trouvé
                 </TableCell>
               </TableRow>
@@ -411,12 +441,6 @@ const StockPage = () => {
                 value={editStock.minQuantity}
                 onChange={e => setEditStock({ ...editStock, minQuantity: Number(e.target.value) })}
               />
-              <Label>Stock maximum</Label>
-              <Input
-                type="number"
-                value={editStock.maxQuantity}
-                onChange={e => setEditStock({ ...editStock, maxQuantity: Number(e.target.value) })}
-              />
               <Label>Emplacement</Label>
               <Input
                 value={editStock.location}
@@ -427,7 +451,6 @@ const StockPage = () => {
               <Button variant="outline" onClick={() => setEditStock(null)}>Annuler</Button>
               <Button onClick={() => handleSaveEditStock({
                 minQuantity: editStock.minQuantity,
-                maxQuantity: editStock.maxQuantity,
                 location: editStock.location
               })}>Enregistrer</Button>
             </DialogFooter>
@@ -486,18 +509,25 @@ const StockPage = () => {
             <DialogHeader>
               <DialogTitle>Créer une commande pour {orderArticle.articleName}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              <Label>Quantité</Label>
-              <Input
-                type="number"
-                min={1}
-                value={orderQuantity}
-                onChange={e => setOrderQuantity(Number(e.target.value))}
-              />
-            </div>
+            {orderDialogLoading ? (
+              <div>Chargement...</div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Quantité</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={orderQuantity}
+                  onChange={e => setOrderQuantity(Number(e.target.value))}
+                />
+                <div className="text-sm text-muted-foreground">
+                  Date d'obtention estimée : {orderArticleDetails ? new Date(Date.now() + (orderArticleDetails.delaidoptention || 0) * 24 * 60 * 60 * 1000).toLocaleDateString() : '-'}
+                </div>
+              </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setOrderDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleCreateOrder}>Commander</Button>
+              <Button onClick={handleCreateOrder} disabled={orderDialogLoading}>Commander</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -153,16 +153,16 @@ export const articleService = {
    */
   createArticle: async (article: ArticleDTO): Promise<ApiResponse<void>> => {
     try {
-      const response = await apiClient.post('/article/create-article', article);
+      const response = await apiClient.post<{ message: string }>('/article/create-article', article);
       return { 
         success: true, 
-        message: (response.data as { message: string }).message 
+        message: response.data.message || 'Article créé avec succès'
       };
     } catch (error: any) {
       console.error('Error creating article:', error);
       return {
         success: false,
-        error: error?.response?.data?.message || 'Error creating article',
+        error: error?.response?.data?.message || 'Erreur lors de la création de l\'article',
         status: error?.response?.status
       };
     }
@@ -173,17 +173,17 @@ export const articleService = {
    */
   updateArticle: async (id: number, article: ArticleDTO): Promise<ApiResponse<Article>> => {
     try {
-      const response = await apiClient.put<Article>(`/article/${id}`, article);
+      const response = await apiClient.put<Article & { message: string }>(`/article/update-article/${id}`, article);
       return { 
         success: true, 
         data: response.data,
-        message: 'Article updated successfully'
+        message: response.data.message || 'Article mis à jour avec succès'
       };
     } catch (error: any) {
       console.error('Error updating article:', error);
       return {
         success: false,
-        error: error?.response?.data?.message || 'Failed to update article. Please try again.',
+        error: error?.response?.data?.message || 'Erreur lors de la mise à jour de l\'article',
         status: error?.response?.status
       };
     }
@@ -194,16 +194,16 @@ export const articleService = {
    */
   deleteArticle: async (name: string): Promise<ApiResponse<void>> => {
     try {
-      const response = await apiClient.delete(`/article/delete/${name}`);
+      const response = await apiClient.delete<{ message: string }>(`/article/delete/${name}`);
       return { 
         success: true,
-        message: 'Article deleted successfully'
+        message: response.data.message || 'Article supprimé avec succès'
       };
     } catch (error: any) {
       console.error('Error deleting article:', error);
       return {
         success: false,
-        error: error?.response?.data?.message || 'Failed to delete article. Please try again.',
+        error: error?.response?.data?.message || 'Erreur lors de la suppression de l\'article',
         status: error?.response?.status
       };
     }
@@ -555,6 +555,22 @@ export const orderService = {
         success: false,
         error: error?.message || 'Error fetching manufacturing orders',
         status: error?.status
+      };
+    }
+  },
+
+  /**
+   * Creates a new supplier order
+   */
+  createSupplierOrder: async (order: { articleId: number, quantity: number, expectedDate: Date }) => {
+    try {
+      const response = await apiClient.post('/orders/supplier', order);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.response?.data?.message || 'Error creating supplier order',
+        status: error?.response?.status
       };
     }
   },

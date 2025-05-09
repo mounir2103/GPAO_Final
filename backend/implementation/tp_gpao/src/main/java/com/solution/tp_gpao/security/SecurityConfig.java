@@ -58,8 +58,16 @@ public class SecurityConfig {
                 // Article endpoints with different role permissions
                 req.requestMatchers(HttpMethod.GET, "/article/**", "/api/v1/article/**").hasAnyRole("USER", "EDITOR", "ADMIN")
                    .requestMatchers(HttpMethod.POST, "/article/**", "/api/v1/article/**").hasAnyRole("USER", "EDITOR", "ADMIN")
-                   .requestMatchers(HttpMethod.PUT, "/article/**", "/api/v1/article/**").hasAnyRole("EDITOR", "ADMIN")
+                   .requestMatchers(HttpMethod.PUT, "/article/**", "/api/v1/article/**").hasAnyRole("USER", "EDITOR", "ADMIN")
                    .requestMatchers(HttpMethod.DELETE, "/article/**", "/api/v1/article/**").hasAnyRole("USER", "ADMIN");
+
+                // Machines and production planning endpoints
+                req.requestMatchers(HttpMethod.GET, "/machines/**", "/api/v1/machines/**", "/production-planning/**", "/api/v1/production-planning/**").hasAnyRole("USER", "EDITOR", "ADMIN")
+                   .requestMatchers(HttpMethod.POST, "/machines/**", "/api/v1/machines/**", "/production-planning/**", "/api/v1/production-planning/**").hasAnyRole("USER", "EDITOR", "ADMIN")
+                   .requestMatchers(HttpMethod.PUT, "/machines/**", "/api/v1/machines/**", "/production-planning/**", "/api/v1/production-planning/**").hasAnyRole("USER", "EDITOR", "ADMIN")
+                   .requestMatchers(HttpMethod.DELETE, "/machines/**", "/api/v1/machines/**", "/production-planning/**", "/api/v1/production-planning/**").hasAnyRole("USER", "EDITOR", "ADMIN");
+
+                   
                 
                 // All other requests require authentication
                 req.anyRequest().authenticated();

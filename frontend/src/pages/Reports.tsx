@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,74 +26,36 @@ import {
 import { Calendar } from 'lucide-react';
 import { Article } from "@/lib/types";
 import { toast } from "sonner";
+import { articleService } from "@/services/api";
 
 const colors = ["#3498db", "#9b59b6", "#2ecc71", "#f1c40f", "#e74c3c"];
 
-const mockArticles: Article[] = [
-  {
-    articleId: 1,
-    code_bare: "VIS-M6",
-    name: "Vis M6",
-    articleDescription: "Vis standard M6",
-    unitPrice: 0.10,
-    TVA: 20,
-    Fournisseur: "BricoPro",
-    delaidoptention: 3,
-    status: "RAW_MATERIAL",
-    isArticleFabrique: false,
-    isArticleAchte: true,
-    safetyStock: 50,
-    bomEntries: [],
-    stockSecurity: 50,
-    leadTime: 3,
-    lotSize: 100,
-    quantity: 120
-  },
-  {
-    articleId: 2,
-    code_bare: "PLAQUE-ACIER",
-    name: "Plaque acier",
-    articleDescription: "Plaque d'acier 2mm",
-    unitPrice: 15,
-    TVA: 20,
-    Fournisseur: "AcierPlus",
-    delaidoptention: 7,
-    status: "RAW_MATERIAL",
-    isArticleFabrique: false,
-    isArticleAchte: true,
-    safetyStock: 20,
-    bomEntries: [],
-    stockSecurity: 20,
-    leadTime: 7,
-    lotSize: 10,
-    quantity: 30
-  },
-  {
-    articleId: 3,
-    code_bare: "PROD-FIN-01",
-    name: "Produit fini 1",
-    articleDescription: "Produit fini assemblé",
-    unitPrice: 50,
-    TVA: 20,
-    Fournisseur: "",
-    delaidoptention: 10,
-    status: "FINISHED",
-    isArticleFabrique: true,
-    isArticleAchte: false,
-    safetyStock: 10,
-    bomEntries: [],
-    stockSecurity: 10,
-    leadTime: 10,
-    lotSize: 20,
-    quantity: 8
-  }
-];
-
 const ReportsPage = () => {
   const [periodFilter, setPeriodFilter] = useState("6months");
-  const [articles, setArticles] = useState<Article[]>(mockArticles);
-  const [loading, setLoading] = useState(false);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await articleService.getAllArticles({ page: 0, size: 100, sort: 'name,asc' });
+      if (response.success && response.data) {
+        setArticles(response.data.list || []);
+      } else {
+        setError(response.error || 'Erreur lors de la récupération des articles');
+      }
+    } catch (err: any) {
+      setError('Erreur lors de la récupération des articles');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Préparation des données pour les graphiques
   const stockValueData = [
@@ -101,19 +63,19 @@ const ReportsPage = () => {
       category: "Matières premières", 
       value: articles
         .filter(article => article.isArticleAchte)
-        .reduce((sum, article) => sum + (article.quantity * article.unitPrice), 0)
+        .reduce((sum, article) => sum + ((article.stock?.quantity || 0) * article.unitPrice), 0)
     },
     { 
       category: "Composants", 
       value: articles
         .filter(article => article.isArticleFabrique)
-        .reduce((sum, article) => sum + (article.quantity * article.unitPrice), 0)
+        .reduce((sum, article) => sum + ((article.stock?.quantity || 0) * article.unitPrice), 0)
     },
     { 
       category: "Produits finis", 
       value: articles
         .filter(article => !article.isArticleAchte && !article.isArticleFabrique)
-        .reduce((sum, article) => sum + (article.quantity * article.unitPrice), 0)
+        .reduce((sum, article) => sum + ((article.stock?.quantity || 0) * article.unitPrice), 0)
     }
   ];
 
@@ -122,15 +84,15 @@ const ReportsPage = () => {
     .map(article => ({
       name: article.name,
       planned: article.lotSize,
-      actual: article.quantity,
-      efficiency: article.quantity > 0 ? (article.quantity / article.lotSize) * 100 : 0
+      actual: article.stock?.quantity || 0,
+      efficiency: (article.stock?.quantity || 0) > 0 ? ((article.stock?.quantity || 0) / article.lotSize) * 100 : 0
     }));
 
   const materialsData = articles
     .filter(article => article.isArticleAchte)
     .map(article => ({
       name: article.name,
-      quantity: article.quantity
+      quantity: article.stock?.quantity || 0
     }));
 
   if (loading) {
@@ -324,7 +286,7 @@ const ReportsPage = () => {
                     <BarChart
                       data={articles.map(article => ({
                         name: article.name,
-                        stock: article.quantity,
+                        stock: article.stock?.quantity || 0,
                         safetyStock: article.safetyStock
                       }))}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}

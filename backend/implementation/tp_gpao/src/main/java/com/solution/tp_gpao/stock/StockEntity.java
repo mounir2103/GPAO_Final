@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,6 +25,9 @@ public class StockEntity {
     @OneToOne
     @JoinColumn(name = "article_id", nullable = false)
     private ArticleEntity article;
+
+    @OneToMany(mappedBy = "stock", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StockTransaction> transactions = new ArrayList<>();
 
     @Column(nullable = false)
     private Integer quantity;

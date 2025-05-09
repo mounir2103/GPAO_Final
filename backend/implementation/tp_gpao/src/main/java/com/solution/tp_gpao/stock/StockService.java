@@ -75,7 +75,7 @@ public class StockService {
                 .id(stock.getId())
                 .articleId(stock.getArticle().getArticleId())
                 .articleName(stock.getArticle().getName())
-                .articleCode(stock.getArticle().getCode_bare())
+                .articleCode(stock.getArticle().getCodeBare())
                 .quantity(stock.getQuantity())
                 .minQuantity(stock.getMinQuantity())
                 .maxQuantity(stock.getMaxQuantity())

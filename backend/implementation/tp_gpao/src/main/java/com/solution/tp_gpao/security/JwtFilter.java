@@ -38,7 +38,7 @@ public class JwtFilter extends OncePerRequestFilter {
         
         // Check if this is an auth endpoint that should be permitted
         String servletPath = request.getServletPath();
-        if (servletPath.startsWith("/auth/")) {
+        if (servletPath.startsWith("/auth/") || servletPath.startsWith("/api/v1/auth/")) {
             log.info("Auth endpoint detected, permitting access: {}", servletPath);
             filterChain.doFilter(request, response);
             return;

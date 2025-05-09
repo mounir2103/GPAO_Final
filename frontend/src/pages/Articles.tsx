@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Plus, Search } from 'lucide-react';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
@@ -15,35 +15,30 @@ const ArticlesPage: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<ArticleType | 'all'>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
   const fetchArticles = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const response = await articleService.getAllArticles({ 
-        page: 0, 
+      const response = await articleService.getAllArticles({
+        page: 0,
         size: 100,
         sort: "createdDate,desc"
       });
       if (response.success && response.data) {
         setArticles(response.data.list || []);
       } else {
-        setArticles([]);
-        setError(response.error || 'Failed to load articles');
-        toast.error(response.error || 'Failed to load articles');
+        setError(response.error || "Erreur lors du chargement des articles");
       }
-    } catch (err) {
-      console.error('Error fetching articles:', err);
-      setArticles([]);
-      setError('Failed to load articles. Please try again later.');
-      toast.error('Failed to load articles. Please try again later.');
+    } catch (error) {
+      setError("Erreur lors du chargement des articles");
+      console.error("Error fetching articles:", error);
     } finally {
       setLoading(false);
     }
@@ -57,43 +52,33 @@ const ArticlesPage: React.FC = () => {
     try {
       const response = await articleService.createArticle(article);
       if (response.success) {
-        toast.success(response.message || 'Article ajouté avec succès');
-        await fetchArticles();
+        toast.success("Article ajouté avec succès");
         setIsAddDialogOpen(false);
+        fetchArticles();
       } else {
-        if (response.status === 401 || response.status === 403) {
-          toast.error('Votre session a expiré. Veuillez vous reconnecter.');
-          window.location.href = '/login';
-        } else if (response.status === 409) {
-          toast.error('Un article avec ce code existe déjà.');
-        } else {
-          toast.error(response.error || 'Échec de l\'ajout de l\'article');
-        }
+        toast.error(response.error || "Erreur lors de l'ajout de l'article");
       }
-    } catch (err) {
-      console.error('Error adding article:', err);
-      toast.error('Échec de l\'ajout de l\'article. Veuillez réessayer.');
+    } catch (error) {
+      toast.error("Erreur lors de l'ajout de l'article");
+      console.error("Error adding article:", error);
     }
   };
 
   const handleEditArticle = async (article: ArticleDTO) => {
+    if (!selectedArticle) return;
     try {
-      const response = await articleService.updateArticle(article.articleId!, article);
+      const response = await articleService.updateArticle(selectedArticle.articleId, article);
       if (response.success) {
-        toast.success(response.message || 'Article mis à jour avec succès');
-        await fetchArticles();
+        toast.success("Article modifié avec succès");
         setIsEditDialogOpen(false);
+        setSelectedArticle(null);
+        fetchArticles();
       } else {
-        if (response.status === 401 || response.status === 403) {
-          toast.error('Votre session a expiré. Veuillez vous reconnecter.');
-          window.location.href = '/login';
-        } else {
-          toast.error(response.error || 'Échec de la mise à jour de l\'article');
-        }
+        toast.error(response.error || "Erreur lors de la modification de l'article");
       }
-    } catch (err) {
-      console.error('Error updating article:', err);
-      toast.error('Échec de la mise à jour de l\'article. Veuillez réessayer.');
+    } catch (error) {
+      toast.error("Erreur lors de la modification de l'article");
+      console.error("Error updating article:", error);
     }
   };
 
@@ -102,44 +87,47 @@ const ArticlesPage: React.FC = () => {
     try {
       const response = await articleService.deleteArticle(selectedArticle.name);
       if (response.success) {
-        toast.success(response.message || 'Article deleted successfully');
-        await fetchArticles();
-    setIsDeleteDialogOpen(false);
+        toast.success("Article supprimé avec succès");
+        setIsDeleteDialogOpen(false);
+        setSelectedArticle(null);
+        fetchArticles();
       } else {
-        if (response.status === 401 || response.status === 403) {
-          toast.error('Your session has expired. Please log in again.');
-          window.location.href = '/login';
-        } else {
-          toast.error(response.error || 'Failed to delete article');
-        }
+        toast.error(response.error || "Erreur lors de la suppression de l'article");
       }
-    } catch (err) {
-      console.error('Error deleting article:', err);
-      toast.error('Failed to delete article. Please try again.');
+    } catch (error) {
+      toast.error("Erreur lors de la suppression de l'article");
+      console.error("Error deleting article:", error);
     }
   };
 
-  const filteredArticles = articles.filter(article => {
-    const name = article.name || "";
-    const code = article.code_bare || "";
-    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) ||
-      code.toLowerCase().includes(search.toLowerCase());
-    const matchesType = selectedType === 'all' || 
-      (selectedType === 'raw' && article.isArticleAchte) ||
-      (selectedType === 'component' && article.isArticleFabrique) ||
-      (selectedType === 'finished' && !article.isArticleAchte && !article.isArticleFabrique);
-    return matchesSearch && matchesType;
-  });
+  const handleViewArticle = (article: Article) => {
+    setSelectedArticle(article);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditClick = (article: Article) => {
+    setSelectedArticle(article);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (article: Article) => {
+    setSelectedArticle(article);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const filteredArticles = articles.filter((article) =>
+    article.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const convertToArticleDTO = (article: Article): ArticleDTO => {
     return {
       articleId: article.articleId,
-      code_bare: article.code_bare,
+      codeBare: article.codeBare,
       articleName: article.name,
       articleDescription: article.articleDescription,
       unitPrice: article.unitPrice,
-      TVA: article.TVA,
-      Fournisseur: article.Fournisseur,
+      tva: article.tva,
+      fournisseur: article.fournisseur,
       delaidoptention: article.delaidoptention,
       status: article.status,
       isArticleFabrique: article.isArticleFabrique,
@@ -170,88 +158,68 @@ const ArticlesPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Articles</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Article
         </Button>
-        </div>
+      </div>
 
-      <div className="flex gap-4">
-          <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-            placeholder="Search articles..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-            />
-          </div>
-        <Select value={selectedType} onValueChange={(value) => setSelectedType(value as ArticleType | 'all')}>
-              <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="raw">Raw Materials</SelectItem>
-            <SelectItem value="component">Components</SelectItem>
-            <SelectItem value="finished">Finished Products</SelectItem>
-              </SelectContent>
-            </Select>
-        </div>
+      <div className="mb-4">
+        <Input
+          type="text"
+          placeholder="Rechercher un article..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
 
-        <ArticlesTable
+      <ArticlesTable
         articles={filteredArticles}
-        onEdit={(article) => {
-          setSelectedArticle(article);
-          setIsEditDialogOpen(true);
-        }}
-        onDelete={(article) => {
-          setSelectedArticle(article);
-          setIsDeleteDialogOpen(true);
-        }}
-        onView={(article) => {
-          setSelectedArticle(article);
-          setIsViewDialogOpen(true);
-        }}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
+        onView={handleViewArticle}
       />
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
-            <DialogHeader>
+          <DialogHeader>
             <DialogTitle>Add New Article</DialogTitle>
-            </DialogHeader>
-            <ArticleForm
-              onSubmit={handleAddArticle}
-              onCancel={() => setIsAddDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          </DialogHeader>
+          <ArticleForm
+            onSubmit={handleAddArticle}
+            onCancel={() => setIsAddDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
-            <DialogHeader>
+          <DialogHeader>
             <DialogTitle>Edit Article</DialogTitle>
-            </DialogHeader>
-            {selectedArticle && (
-              <ArticleForm
-                article={selectedArticle}
-                onSubmit={handleEditArticle}
-                onCancel={() => setIsEditDialogOpen(false)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+          </DialogHeader>
+          {selectedArticle && (
+            <ArticleForm
+              article={selectedArticle}
+              onSubmit={handleEditArticle}
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Article</DialogTitle>
           </DialogHeader>
-          <p>Are you sure you want to delete this article?</p>
-          <div className="flex justify-end gap-2 mt-4">
+          <DialogDescription>
+            Êtes-vous sûr de vouloir supprimer cet article ? Cette action est irréversible.
+          </DialogDescription>
+          <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
@@ -262,50 +230,50 @@ const ArticlesPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent>
-            <DialogHeader>
+          <DialogHeader>
             <DialogTitle>Article Details</DialogTitle>
-            </DialogHeader>
-            {selectedArticle && (
+          </DialogHeader>
+          {selectedArticle && (
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium">Name</h3>
                 <p>{selectedArticle.name}</p>
-                </div>
+              </div>
               <div>
                 <h3 className="font-medium">Barcode</h3>
-                <p>{selectedArticle.code_bare}</p>
-                </div>
+                <p>{selectedArticle.codeBare}</p>
+              </div>
               <div>
                 <h3 className="font-medium">Description</h3>
                 <p>{selectedArticle.articleDescription}</p>
-                </div>
+              </div>
               <div>
                 <h3 className="font-medium">Unit Price</h3>
                 <p>{selectedArticle.unitPrice}</p>
-                </div>
+              </div>
               <div>
                 <h3 className="font-medium">TVA</h3>
-                <p>{selectedArticle.TVA}</p>
-                </div>
+                <p>{selectedArticle.tva}</p>
+              </div>
               <div>
                 <h3 className="font-medium">Supplier</h3>
-                <p>{selectedArticle.Fournisseur}</p>
-                </div>
+                <p>{selectedArticle.fournisseur}</p>
+              </div>
               <div>
                 <h3 className="font-medium">Lead Time</h3>
                 <p>{selectedArticle.delaidoptention}</p>
-                </div>
+              </div>
               <div>
                 <h3 className="font-medium">Safety Stock</h3>
                 <p>{selectedArticle.safetyStock}</p>
-                    </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

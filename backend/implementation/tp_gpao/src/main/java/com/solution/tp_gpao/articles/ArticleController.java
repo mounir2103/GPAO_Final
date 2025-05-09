@@ -2,6 +2,7 @@ package com.solution.tp_gpao.articles;
 
 import com.solution.tp_gpao.commonEntity.PageResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class ArticleController {
     @PostMapping("/create-article")
     public ResponseEntity<?> createNewArticle(@RequestBody ArticleRequest request) {
         try {
+            System.out.println("Received ArticleRequest: " + request);
             service.createNewArticle(request);
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -38,6 +40,7 @@ public class ArticleController {
                     "message", e.getReason()
                 ));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of(
@@ -49,9 +52,35 @@ public class ArticleController {
 
     @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
     @DeleteMapping("/delete/{articleName}")
-    public ResponseEntity<?> deleteArticle(@PathVariable String articleName){
-        service.deleteArticle(articleName);
-        return ResponseEntity.ok(HttpStatus.NO_CONTENT);
+    public ResponseEntity<?> deleteArticle(@PathVariable String articleName) {
+        try {
+            service.deleteArticle(articleName);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Article supprimé avec succès"
+            ));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+                ));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity
+                .status(e.getStatusCode())
+                .body(Map.of(
+                    "success", false,
+                    "message", e.getReason()
+                ));
+        } catch (Exception e) {
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "success", false,
+                    "message", "Une erreur est survenue lors de la suppression de l'article"
+                ));
+        }
     }
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping("/get-article/{articleName}")
@@ -86,4 +115,31 @@ public class ArticleController {
         return ResponseEntity.ok(service.findAllFinishedArticles(page,size,connectedUser));
     }
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PutMapping("/update-article/{id}")
+    public ResponseEntity<?> updateArticle(@PathVariable Long id, @RequestBody ArticleRequest request) {
+        try {
+            ArticleResponse updatedArticle = service.updateArticle(id, request);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Article mis à jour avec succès",
+                "data", updatedArticle
+            ));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+                ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "success", false,
+                    "message", "Une erreur est survenue lors de la mise à jour de l'article"
+                ));
+        }
+    }
 }

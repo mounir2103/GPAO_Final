@@ -233,3 +233,98 @@ export const formatDataForChart = (
     };
   });
 };
+
+// Ajout de la fonction kuziackMethod en TypeScript
+export function kuziackMethod(
+  matrix: number[][],
+  products: Array<{ id: number; name: string }>,
+  machines: Array<{ id: number; name: string }>,
+  startIndex: number = 0
+): Array<{ step: number; products: Array<{ id: number; name: string; index: number }>; machines: Array<{ id: number; name: string; index: number }>; submatrix: number[][] }> {
+  const nProducts = matrix.length;
+  const nMachines = matrix[0].length;
+  const productNames = products.map(p => p.name);
+  const machineNames = machines.map(m => m.name);
+
+  if (startIndex < 0 || startIndex >= nProducts) startIndex = 0;
+
+  const cells: Array<{ step: number; products: Array<{ id: number; name: string; index: number }>; machines: Array<{ id: number; name: string; index: number }>; submatrix: number[][] }> = [];
+  let remainingProducts = Array.from({ length: nProducts }, (_, i) => i);
+  let remainingMachines = Array.from({ length: nMachines }, (_, j) => j);
+  let step = 1;
+
+  while (remainingProducts.length > 0) {
+    const currentIlotProducts = new Set<number>();
+    const currentIlotMachines = new Set<number>();
+
+    // Étape 2 : Sélectionner une ligne (la première restante ou startIndex)
+    const p0 = remainingProducts.includes(startIndex) ? startIndex : remainingProducts[0];
+    currentIlotProducts.add(p0);
+    // Machines associées au produit initial
+    for (let m = 0; m < nMachines; m++) {
+      if (matrix[p0][m] === 1) {
+        currentIlotMachines.add(m);
+      }
+    }
+
+    let updated = true;
+    while (updated) {
+      updated = false;
+      // Étape 3 : Ajouter produits dont ≥50% machines dans l'îlot
+      for (const p of [...remainingProducts]) {
+        if (currentIlotProducts.has(p)) continue;
+        const machinesUsed = new Set<number>();
+        for (let m = 0; m < nMachines; m++) {
+          if (matrix[p][m] === 1) machinesUsed.add(m);
+        }
+        if (machinesUsed.size === 0) continue;
+        const overlap = new Set([...machinesUsed].filter(m => currentIlotMachines.has(m)));
+        if (overlap.size >= 0.5 * machinesUsed.size) {
+          currentIlotProducts.add(p);
+          updated = true;
+        }
+      }
+      // Étape 4 : Ajouter machines dont ≥50% produits dans l'îlot
+      for (const m of [...remainingMachines]) {
+        if (currentIlotMachines.has(m)) continue;
+        const productsUsing = new Set<number>();
+        for (let p = 0; p < nProducts; p++) {
+          if (matrix[p][m] === 1) productsUsing.add(p);
+        }
+        if (productsUsing.size === 0) continue;
+        const overlap = new Set([...productsUsing].filter(p => currentIlotProducts.has(p)));
+        if (overlap.size >= 0.5 * productsUsing.size) {
+          currentIlotMachines.add(m);
+          updated = true;
+        }
+      }
+    }
+    // Affichage de l'îlot trouvé (ici, on prépare la structure de retour)
+    const selectedProducts = [...currentIlotProducts].sort((a, b) => a - b);
+    const selectedMachines = [...currentIlotMachines].sort((a, b) => a - b);
+    // Sous-matrice de l'îlot
+    const submatrix = selectedProducts.map(p => selectedMachines.map(m => matrix[p][m]));
+    // Préparer les infos produits/machines
+    const cellProducts = selectedProducts.map(p => ({
+      id: products[p].id,
+      name: productNames[p],
+      index: p
+    }));
+    const cellMachines = selectedMachines.map(m => ({
+      id: machines[m].id,
+      name: machineNames[m],
+      index: m
+    }));
+    cells.push({
+      step,
+      products: cellProducts,
+      machines: cellMachines,
+      submatrix
+    });
+    // Étape 6 : Retirer l'îlot
+    remainingProducts = remainingProducts.filter(p => !currentIlotProducts.has(p));
+    remainingMachines = remainingMachines.filter(m => !currentIlotMachines.has(m));
+    step++;
+  }
+  return cells;
+}

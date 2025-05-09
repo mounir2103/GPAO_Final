@@ -3,6 +3,7 @@ package com.solution.tp_gpao.articles;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.solution.tp_gpao.boms.BomEntity;
+import com.solution.tp_gpao.stock.StockEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -19,15 +20,18 @@ public class ArticleEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long articleId;
-    @Column(nullable = false , unique = true , updatable = false)
-    private String code_bare;
+    @Column(name = "code_bare", nullable = false, unique = true, updatable = false)
+    private String codeBare;
     private String name;
     @Column(length = 500)
     private String articleDescription;
     private double unitPrice;
-    private double TVA;
-    private String Fournisseur;
-    private Integer delaidoptention;
+    @Column(name = "tva")
+    private double tva;
+    @Column(name = "fournisseur")
+    private String fournisseur;
+    @Column(name = "delaidoptention")
+    private Integer delaiDoptention;
     @Enumerated(EnumType.STRING)
     private ArticleStatus status;
     private boolean isArticleFabrique;
@@ -40,7 +44,16 @@ public class ArticleEntity {
     @JsonManagedReference
     @JsonIgnore
     private List<BomEntity> bomEntries = new ArrayList<>();
+    @OneToOne(mappedBy = "article")
+    private StockEntity stock;
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdDate;
+
+    public void setIsArticleAchte(boolean isArticleAchte) {
+        this.isArticleAchte = isArticleAchte;
+    }
+    public void setIsArticleFabrique(boolean isArticleFabrique) {
+        this.isArticleFabrique = isArticleFabrique;
+    }
 }

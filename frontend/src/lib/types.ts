@@ -6,12 +6,12 @@ export type ArticleStatus = 'RAW_MATERIAL' | 'FINISHED';
 
 export interface Article {
   articleId: number;
-  code_bare: string;
+  codeBare: string;
   name: string;
   articleDescription: string;
   unitPrice: number;
-  TVA: number;
-  Fournisseur: string;
+  tva: number;
+  fournisseur: string;
   delaidoptention: number;
   status: ArticleStatus;
   isArticleFabrique: boolean;
@@ -30,8 +30,13 @@ export interface Article {
   price?: number;
   supplier?: string;
   isActive?: boolean;
-  // Stock quantity
-  quantity: number;
+  // Stock information
+  stock?: {
+    quantity: number;
+    minQuantity: number;
+    location: string;
+    lastUpdated: string;
+  };
 }
 
 export interface ArticleComponent {
@@ -48,7 +53,6 @@ export interface Stock {
   articleCode: string;
   quantity: number;
   minQuantity: number;
-  maxQuantity: number;
   lastUpdated: string;
   location: string;
 }
@@ -132,12 +136,12 @@ export interface PageResponse<T> {
 
 export interface ArticleDTO {
   articleId?: number;
-  code_bare: string;
+  codeBare: string;
   articleName: string;
   articleDescription: string;
   unitPrice: number;
-  TVA: number;
-  Fournisseur: string;
+  tva: number;
+  fournisseur: string;
   delaidoptention: number;
   status: ArticleStatus;
   isArticleFabrique: boolean;

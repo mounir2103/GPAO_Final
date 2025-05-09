@@ -9,6 +9,9 @@ import {
   Boxes,
   Calculator,
   Menu,
+  Wrench,
+  Network,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -77,6 +80,21 @@ const Sidebar = ({ isMobile, isCollapsed, activeRoute, onToggleSidebar }: Sideba
       to: "/settings",
       label: "Paramètres",
       icon: <Settings size={20} />,
+    },
+    {
+      to: "/machines",
+      label: "Machines",
+      icon: <Wrench size={20} />,
+    },
+    {
+      to: "/machine-assignment",
+      label: "Assignation Machines",
+      icon: <Link2 size={20} />,
+    },
+    {
+      to: "/production-planning",
+      label: "Implantation d'atelier",
+      icon: <Network size={20} />,
     },
   ];
 

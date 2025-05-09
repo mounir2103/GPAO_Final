@@ -18,7 +18,10 @@ public class StockTransaction {
 
     private int quantityChange;
     private String type; // "ENTRY" or "EXIT"
-    private String user;
+    private String username;
     private LocalDateTime timestamp;
     private String note;
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 } 

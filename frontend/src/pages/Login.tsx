@@ -5,37 +5,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { authHelper } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import ApiClient from "@/lib/api-client";
 
 const LoginPage = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}auth/authenticate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await ApiClient.post<{ token: string }>('/auth/authenticate', {
+        email,
+        password
+      }, { requiresAuth: false });
 
-      if (!response.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const data = await response.json();
-      authHelper.setToken(data.token);
+      login(response.token);
       toast.success("Login successful");
       navigate("/");
-    } catch (error) {
-      toast.error("Invalid credentials");
+    } catch (err) {
+      setError('Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -49,7 +45,7 @@ const LoginPage = () => {
           <CardDescription>Enter your credentials to access the system</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -70,6 +66,9 @@ const LoginPage = () => {
                 required
               />
             </div>
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </Button>

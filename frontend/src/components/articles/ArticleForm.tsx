@@ -25,20 +25,20 @@ import { Article, ArticleStatus, ArticleType, ArticleDTO } from "@/lib/types";
 import { toast } from "sonner";
 
 const articleSchema = z.object({
-  code_bare: z.string().min(2, "Le code doit contenir au moins 2 caractères"),
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  type: z.enum(["raw", "component", "finished"]),
-  unit: z.string().min(1, "L'unité est requise"),
-  safetyStock: z.number().min(0, "Le stock de sécurité doit être positif"),
-  delaidoptention: z.number().min(0, "Le délai d'obtention doit être positif"),
-  lotSize: z.number().min(1, "La taille de lot doit être au moins 1"),
-  unitPrice: z.number().min(0, "Le prix doit être positif"),
-  articleDescription: z.string().optional(),
-  TVA: z.number().min(0).max(100).default(20),
-  Fournisseur: z.string().default(""),
-  status: z.enum(["RAW_MATERIAL", "FINISHED"]).default("RAW_MATERIAL"),
-  isArticleFabrique: z.boolean().default(false),
-  isArticleAchte: z.boolean().default(true),
+  name: z.string().min(1, 'Le nom est requis'),
+  articleDescription: z.string().min(1, 'La description est requise'),
+  type: z.enum(['raw', 'component', 'finished']),
+  unit: z.string().min(1, 'L\'unité est requise'),
+  unitPrice: z.number().min(0, 'Le prix doit être positif'),
+  safetyStock: z.number().min(0, 'Le stock de sécurité doit être positif'),
+  fournisseur: z.string().min(1, 'Le fournisseur est requis'),
+  delaidoptention: z.number().min(0, 'Le délai d\'approvisionnement doit être positif'),
+  isArticleFabrique: z.boolean().optional(),
+  isArticleAchte: z.boolean().optional(),
+  tva: z.number().optional(),
+  lotSize: z.number().optional(),
+  codeBare: z.string().optional(),
+  status: z.enum(['RAW_MATERIAL', 'FINISHED']).default('RAW_MATERIAL')
 });
 
 interface ArticleFormProps {
@@ -52,63 +52,63 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
     resolver: zodResolver(articleSchema),
     defaultValues: article
       ? {
-          code_bare: article.code_bare || article.code || "",
           name: article.name || "",
-          type: article.type || "raw" as ArticleType,
-          unit: article.unit || "pcs",
-          safetyStock: article.safetyStock || article.stockSecurity || 0,
-          delaidoptention: article.delaidoptention || article.leadTime || 0,
-          lotSize: article.lotSize || 1,
-          unitPrice: article.unitPrice || article.price || 0,
           articleDescription: article.articleDescription || "",
-          TVA: article.TVA || 20,
-          Fournisseur: article.Fournisseur || "",
-          status: article.status || "RAW_MATERIAL",
+          type: article.type || "raw",
+          unit: article.unit || "pcs",
+          unitPrice: article.unitPrice || 0,
+          safetyStock: article.safetyStock || article.stockSecurity || 0,
+          fournisseur: article.fournisseur || "",
+          delaidoptention: article.delaidoptention || 0,
           isArticleFabrique: article.isArticleFabrique || false,
-          isArticleAchte: article.isArticleAchte || true,
+          isArticleAchte: article.isArticleAchte || false,
+          tva: article.tva || 0,
+          lotSize: article.lotSize || 0,
+          codeBare: article.codeBare || "",
+          status: article.status || "RAW_MATERIAL"
         }
       : {
-          code_bare: "",
           name: "",
-          type: "raw" as ArticleType,
-          unit: "pcs",
-          safetyStock: 10,
-          delaidoptention: 7,
-          lotSize: 1,
-          unitPrice: 0,
           articleDescription: "",
-          TVA: 20,
-          Fournisseur: "",
-          status: "RAW_MATERIAL",
+          type: "raw",
+          unit: "pcs",
+          unitPrice: 0,
+          safetyStock: 10,
+          fournisseur: "",
+          delaidoptention: 7,
           isArticleFabrique: false,
-          isArticleAchte: true,
+          isArticleAchte: false,
+          tva: 0,
+          lotSize: 0,
+          codeBare: "",
+          status: "RAW_MATERIAL"
         },
   });
 
-  const handleSubmit = (values: z.infer<typeof articleSchema>) => {
+  const handleSubmit = async (data: z.infer<typeof articleSchema>) => {
     try {
       const articleData: ArticleDTO = {
-        articleId: article?.articleId,
-        code_bare: values.code_bare,
-        articleName: values.name,
-        articleDescription: values.articleDescription,
-        unitPrice: values.unitPrice,
-        Fournisseur: values.Fournisseur,
-        TVA: values.TVA,
-        delaidoptention: values.delaidoptention,
-        status: values.status,
-        isArticleFabrique: values.isArticleFabrique,
-        isArticleAchte: values.isArticleAchte,
-        safetyStock: values.safetyStock,
-        lotSize: values.lotSize,
-        type: values.type,
-        unit: values.unit
+        articleName: data.name,
+        articleDescription: data.articleDescription,
+        type: data.type,
+        unit: data.unit,
+        unitPrice: data.unitPrice,
+        safetyStock: data.safetyStock,
+        fournisseur: data.fournisseur,
+        delaidoptention: data.delaidoptention,
+        isArticleFabrique: data.isArticleFabrique,
+        isArticleAchte: data.isArticleAchte,
+        tva: data.tva,
+        lotSize: data.lotSize,
+        codeBare: data.codeBare,
+        status: data.status
       };
-      onSubmit(articleData);
+
+      await onSubmit(articleData);
       toast.success(article ? "Article modifié avec succès" : "Article ajouté avec succès");
     } catch (error) {
       toast.error("Une erreur est survenue");
-      console.error(error);
+      console.error('Error submitting form:', error);
     }
   };
 
@@ -116,20 +116,6 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="code_bare"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="name"
@@ -175,7 +161,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="raw">Matière première</SelectItem>
-                    <SelectItem value="component">Composant</SelectItem>
+                    <SelectItem value="component">Produit semi-fini</SelectItem>
                     <SelectItem value="finished">Produit fini</SelectItem>
                   </SelectContent>
                 </Select>
@@ -231,16 +217,12 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="delaidoptention"
+            name="fournisseur"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Délai d'obtention (jours)</FormLabel>
+                <FormLabel>Fournisseur</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -249,10 +231,10 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="lotSize"
+            name="delaidoptention"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Taille de lot</FormLabel>
+                <FormLabel>Délai d'obtention (jours)</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -286,10 +268,29 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="TVA"
+            name="tva"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>TVA (%)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    step="0.01"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lotSize"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Taille de lot</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -304,12 +305,46 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
 
           <FormField
             control={form.control}
-            name="Fournisseur"
+            name="codeBare"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Fournisseur</FormLabel>
+                <FormLabel>Code-barres</FormLabel>
                 <FormControl>
                   <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isArticleFabrique"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fabriqué</FormLabel>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isArticleAchte"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Acheté</FormLabel>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -337,44 +372,6 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   </SelectContent>
                 </Select>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="isArticleFabrique"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Article fabriqué</FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="isArticleAchte"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Article acheté</FormLabel>
-                </div>
               </FormItem>
             )}
           />

@@ -17,6 +17,7 @@ import {
   Cell
 } from "recharts";
 import { articleService } from "@/services/api";
+import { stockService } from "@/services/api";
 import { Article } from "@/lib/types";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ const COLORS = ["#2563eb", "#f97316", "#10b981"];
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [articles, setArticles] = useState<Article[]>([]);
+  const [stockData, setStockData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -33,28 +35,48 @@ const Dashboard = () => {
   const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
-    fetchArticles();
+    fetchData();
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchData = async () => {
     try {
-      const response = await articleService.getAllArticles({ page: 0, size: 100, sort: 'name,asc' });
-      if (response.success && response.data) {
-        setArticles(response.data.list || []);
+      setLoading(true);
+      const [articlesResponse, stockResponse] = await Promise.all([
+        articleService.getAllArticles({ page: 0, size: 100, sort: 'name,asc' }),
+        stockService.getAllStocks()
+      ]);
+
+      if (articlesResponse.success && articlesResponse.data) {
+        setArticles(articlesResponse.data.list || []);
       } else {
-        setError(response.error || 'Erreur lors de la récupération des articles');
+        setError(articlesResponse.error || 'Erreur lors de la récupération des articles');
+      }
+
+      if (stockResponse.success && stockResponse.data) {
+        setStockData(stockResponse.data || []);
+      } else {
+        setError(stockResponse.error || 'Erreur lors de la récupération des stocks');
       }
     } catch (err: any) {
-      setError('Erreur lors de la récupération des articles');
+      setError('Erreur lors de la récupération des données');
     } finally {
       setLoading(false);
     }
   };
 
   // KPIs
-  const belowSafety = articles.filter(a => a.quantity < (a.safetyStock || 0)).length;
-  const totalValue = articles.reduce((sum, a) => sum + ((a.quantity || 0) * (a.unitPrice || 0)), 0);
-  const suppliers = Array.from(new Set(articles.map(a => a.Fournisseur).filter(Boolean))).length;
+  const belowSafety = articles.filter(a => {
+    const stock = stockData.find(s => s.name === a.name);
+    return (stock?.quantity || 0) < (a.safetyStock || 0);
+  }).length;
+
+  const totalValue = articles.reduce((sum, a) => {
+    const stock = stockData.find(s => s.name === a.name);
+    return sum + ((stock?.quantity || 0) * (a.unitPrice || 0));
+  }, 0);
+
+  const suppliers = Array.from(new Set(articles.map(a => a.fournisseur).filter(Boolean))).length;
+  const totalLotSize = articles.reduce((sum, a) => sum + (a.lotSize || 0), 0);
   const typeCounts = {
     raw: articles.filter(a => a.status === 'RAW_MATERIAL').length,
     component: articles.filter(a => a.type === 'component').length,
@@ -71,11 +93,16 @@ const Dashboard = () => {
   // Table filtering and sorting
   const filteredArticles = articles.filter(a =>
     (a.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (a.code_bare?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (a.Fournisseur?.toLowerCase() || '').includes(search.toLowerCase())
+    (a.codeBare?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (a.fournisseur?.toLowerCase() || '').includes(search.toLowerCase())
   );
   const sortedArticles = sortKey
     ? [...filteredArticles].sort((a, b) => {
+        if (sortKey === 'stock') {
+          const aStock = a.stock?.quantity || 0;
+          const bStock = b.stock?.quantity || 0;
+          return (aStock > bStock ? 1 : -1) * (sortAsc ? 1 : -1);
+        }
         if (a[sortKey] === b[sortKey]) return 0;
         if (a[sortKey] == null) return 1;
         if (b[sortKey] == null) return -1;
@@ -89,7 +116,8 @@ const Dashboard = () => {
       "Nom", "Code", "Type", "Fournisseur", "Stock", "Stock sécurité", "Prix unitaire", "Valeur totale"
     ];
     const rows = articles.map(a => [
-      a.name, a.code_bare, a.type, a.Fournisseur, a.quantity, a.safetyStock, a.unitPrice, (a.quantity * a.unitPrice).toFixed(2)
+      a.name, a.codeBare, a.type, a.fournisseur, a.stock?.quantity || 0, a.safetyStock, a.unitPrice, 
+      ((a.stock?.quantity || 0) * a.unitPrice).toFixed(2)
     ]);
     const csv = [header, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -158,6 +186,15 @@ const Dashboard = () => {
         <Card className="shadow-sm">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
+              <TrendingUp className="h-8 w-8 text-purple-500" />
+              <span className="text-lg font-bold">{totalLotSize}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">Taille de lot totale</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-6 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
               <PieChart className="h-8 w-8 text-indigo-500" />
               <span className="text-lg font-bold">{articles.length}</span>
             </div>
@@ -169,7 +206,7 @@ const Dashboard = () => {
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchArticles}><span>Actualiser</span></Button>
+          <Button variant="outline" onClick={fetchData}><span>Actualiser</span></Button>
           <Button variant="outline" onClick={handleExportCSV}><Download className="h-4 w-4 mr-2" /> Exporter CSV</Button>
         </div>
         <Button variant="default"><Plus className="h-4 w-4 mr-2" /> Nouvel article</Button>
@@ -192,17 +229,20 @@ const Dashboard = () => {
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={articles.map(article => ({
-                        name: article.name,
-                        stock: article.quantity || 0,
-                        safetyStock: article.safetyStock || 0,
-                        type: article.status === 'RAW_MATERIAL' ? 'Matière première' : 
-                              article.status === 'FINISHED' ? 'Produit fini' : 'Composant'
-                      }))}
+                      data={articles.map(article => {
+                        const stock = stockData.find(s => s.name === article.name);
+                        return {
+                          name: article.name,
+                          stock: stock?.quantity || 0,
+                          safetyStock: article.safetyStock || 0,
+                          type: article.status === 'RAW_MATERIAL' ? 'Matière première' : 
+                                article.status === 'FINISHED' ? 'Produit fini' : 'Composant'
+                        };
+                      })}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                       <YAxis />
                       <Tooltip />
                       <Legend />
@@ -221,15 +261,18 @@ const Dashboard = () => {
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={articles.filter(article => article.isArticleFabrique).map(article => ({
-                        product: article.name,
-                        planned: article.lotSize,
-                        actual: article.quantity
-                      }))}
+                      data={articles.filter(article => article.isArticleFabrique).map(article => {
+                        const stock = stockData.find(s => s.name === article.name);
+                        return {
+                          product: article.name,
+                          planned: article.lotSize || 0,
+                          actual: stock?.quantity || 0
+                        };
+                      })}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="product" />
+                      <XAxis dataKey="product" angle={-45} textAnchor="end" height={100} />
                       <YAxis />
                       <Tooltip />
                       <Legend />
@@ -287,10 +330,10 @@ const Dashboard = () => {
                 <thead>
                   <tr>
                     <th className="cursor-pointer" onClick={() => { setSortKey("name"); setSortAsc(!sortAsc); }}>Nom</th>
-                    <th className="cursor-pointer" onClick={() => { setSortKey("code_bare"); setSortAsc(!sortAsc); }}>Code</th>
+                    <th className="cursor-pointer" onClick={() => { setSortKey("codeBare"); setSortAsc(!sortAsc); }}>Code</th>
                     <th className="cursor-pointer" onClick={() => { setSortKey("type"); setSortAsc(!sortAsc); }}>Type</th>
                     <th>Fournisseur</th>
-                    <th className="cursor-pointer" onClick={() => { setSortKey("quantity"); setSortAsc(!sortAsc); }}>Stock</th>
+                    <th className="cursor-pointer" onClick={() => { setSortKey("stock"); setSortAsc(!sortAsc); }}>Stock</th>
                     <th>Stock sécurité</th>
                     <th>Prix unitaire</th>
                     <th>Valeur totale</th>
@@ -300,13 +343,13 @@ const Dashboard = () => {
                   {sortedArticles.map(article => (
                     <tr key={article.articleId} className="border-b hover:bg-gray-50">
                       <td>{article.name}</td>
-                      <td>{article.code_bare}</td>
+                      <td>{article.codeBare}</td>
                       <td>{article.type}</td>
-                      <td>{article.Fournisseur}</td>
-                      <td>{article.quantity}</td>
+                      <td>{article.fournisseur}</td>
+                      <td>{article.stock?.quantity || 0}</td>
                       <td>{article.safetyStock}</td>
                       <td>{article.unitPrice} €</td>
-                      <td>{(article.quantity * article.unitPrice).toFixed(2)} €</td>
+                      <td>{((article.stock?.quantity || 0) * article.unitPrice).toFixed(2)} €</td>
                     </tr>
                   ))}
                 </tbody>

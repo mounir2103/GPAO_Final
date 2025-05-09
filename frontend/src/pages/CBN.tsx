@@ -199,17 +199,17 @@ const CBNPage = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="article">Article</Label>
+                <Label htmlFor="article">Article</Label>
                   <Select onValueChange={handleArticleSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un article" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un article" />
+                  </SelectTrigger>
+                  <SelectContent>
                       {articles.map(article => (
                         <SelectItem key={article.articleId} value={article.articleId.toString()}>
                           {article.name}
-                        </SelectItem>
-                      ))}
+                      </SelectItem>
+                    ))}
                       {hasMore && (
                         <div className="flex justify-center p-2">
                           <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
@@ -217,14 +217,14 @@ const CBNPage = () => {
                           </Button>
                         </div>
                       )}
-                    </SelectContent>
-                  </Select>
+                  </SelectContent>
+                </Select>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {selectedArticle && (
+              {selectedArticle && (
             <Card>
               <CardHeader>
                 <CardTitle>Détails de l'article</CardTitle>
@@ -289,23 +289,23 @@ const CBNPage = () => {
           <CardContent>
             <div className="grid gap-4">
               <div>
-                <Label htmlFor="initialStock">Stock initial</Label>
-                <Input
-                  id="initialStock"
-                  type="number"
-                  value={initialStock}
-                  onChange={(e) => setInitialStock(Number(e.target.value))}
-                />
-              </div>
-            </div>
+                    <Label htmlFor="initialStock">Stock initial</Label>
+                    <Input 
+                      id="initialStock"
+                      type="number"
+                      value={initialStock}
+                      onChange={(e) => setInitialStock(Number(e.target.value))}
+                    />
+                  </div>
+                  </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end mb-6">
           <Button onClick={handleCalculate} disabled={loading || !selectedArticle || periods.length === 0}>
             {loading ? 'Calcul en cours...' : 'Calculer le CBN'}
-          </Button>
-        </div>
+                  </Button>
+                </div>
 
         {calculations.length > 0 && (
           <Card className="mt-6">

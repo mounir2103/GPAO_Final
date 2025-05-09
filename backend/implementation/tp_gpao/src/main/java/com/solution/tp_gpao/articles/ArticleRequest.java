@@ -11,25 +11,25 @@ import lombok.*;
 public class ArticleRequest {
 
     @NotNull @NotEmpty
-    private String code_bare;
+    private String codeBare;
     @NotNull @NotEmpty
     private String articleName;
     private String articleDescription;
-    private double TVA;
-    private String Fournisseur;
-    @NotNull @NotEmpty
-    private double unitPrice;
-    @NotNull @NotEmpty
-    private Integer delaidoptention;
-    @NotNull @NotEmpty
+    private Double tva;
+    private String fournisseur;
+    @NotNull
+    private Double unitPrice;
+    @NotNull
+    private Integer delaiDoptention;
+    @NotNull
     private Integer safetyStock;
     private String status;
-    private boolean isArticleFabrique;
-    private boolean isArticleAchte;
+    private Boolean isArticleFabrique;
+    private Boolean isArticleAchte;
     @NotNull
     private Integer lotSize;
-    @NotNull
+    @NotNull @NotEmpty
     private String type;
-    @NotNull
+    @NotNull @NotEmpty
     private String unit;
 }

@@ -23,6 +23,11 @@ public class ArticleMapper {
                 .type(article.getType())
                 .unit(article.getUnit())
                 .createdDate(article.getCreatedDate())
+                .stockQuantity(article.getStock() != null ? article.getStock().getQuantity() : null)
+                .minQuantity(article.getStock() != null ? article.getStock().getMinQuantity() : null)
+                .maxQuantity(article.getStock() != null ? article.getStock().getMaxQuantity() : null)
+                .location(article.getStock() != null ? article.getStock().getLocation() : null)
+                .lastUpdated(article.getStock() != null ? article.getStock().getLastUpdated() : null)
                 .build();
     }
 

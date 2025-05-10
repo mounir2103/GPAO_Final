@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import ApiClient from '@/lib/api-client';
+import { toast } from 'sonner';
 
 interface Machine {
   id: number;
@@ -51,11 +52,13 @@ const Machines: React.FC = () => {
 
   const handleDeleteMachine = async (id: number) => {
     try {
-      // Updated path to include the full API endpoint
       await ApiClient.delete(`/api/v1/machines/${id}`);
       fetchMachines();
+      setError(null);
+      toast.success('Machine supprimée avec succès');
     } catch (e) {
       setError('Erreur lors de la suppression de la machine');
+      toast.error('Erreur lors de la suppression de la machine');
     }
   };
 

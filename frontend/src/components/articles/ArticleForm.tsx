@@ -161,7 +161,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="raw">Matière première</SelectItem>
-                    <SelectItem value="component">Produit semi-fini</SelectItem>
+                    <SelectItem value="component">Composant</SelectItem>
                     <SelectItem value="finished">Produit fini</SelectItem>
                   </SelectContent>
                 </Select>

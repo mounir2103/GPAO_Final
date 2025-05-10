@@ -262,7 +262,7 @@ export function kuziackMethod(
     currentIlotProducts.add(p0);
     // Machines associées au produit initial
     for (let m = 0; m < nMachines; m++) {
-      if (matrix[p0][m] === 1) {
+      if (matrix[p0][m] > 0) {
         currentIlotMachines.add(m);
       }
     }
@@ -275,7 +275,7 @@ export function kuziackMethod(
         if (currentIlotProducts.has(p)) continue;
         const machinesUsed = new Set<number>();
         for (let m = 0; m < nMachines; m++) {
-          if (matrix[p][m] === 1) machinesUsed.add(m);
+          if (matrix[p][m] > 0) machinesUsed.add(m);
         }
         if (machinesUsed.size === 0) continue;
         const overlap = new Set([...machinesUsed].filter(m => currentIlotMachines.has(m)));
@@ -289,7 +289,7 @@ export function kuziackMethod(
         if (currentIlotMachines.has(m)) continue;
         const productsUsing = new Set<number>();
         for (let p = 0; p < nProducts; p++) {
-          if (matrix[p][m] === 1) productsUsing.add(p);
+          if (matrix[p][m] > 0) productsUsing.add(p);
         }
         if (productsUsing.size === 0) continue;
         const overlap = new Set([...productsUsing].filter(p => currentIlotProducts.has(p)));
@@ -299,11 +299,14 @@ export function kuziackMethod(
         }
       }
     }
-    // Affichage de l'îlot trouvé (ici, on prépare la structure de retour)
+
+    // Affichage de l'îlot trouvé
     const selectedProducts = [...currentIlotProducts].sort((a, b) => a - b);
     const selectedMachines = [...currentIlotMachines].sort((a, b) => a - b);
-    // Sous-matrice de l'îlot
+    
+    // Sous-matrice de l'îlot avec les valeurs d'ordre
     const submatrix = selectedProducts.map(p => selectedMachines.map(m => matrix[p][m]));
+    
     // Préparer les infos produits/machines
     const cellProducts = selectedProducts.map(p => ({
       id: products[p].id,
@@ -315,12 +318,14 @@ export function kuziackMethod(
       name: machineNames[m],
       index: m
     }));
+    
     cells.push({
       step,
       products: cellProducts,
       machines: cellMachines,
       submatrix
     });
+    
     // Étape 6 : Retirer l'îlot
     remainingProducts = remainingProducts.filter(p => !currentIlotProducts.has(p));
     remainingMachines = remainingMachines.filter(m => !currentIlotMachines.has(m));

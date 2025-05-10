@@ -66,12 +66,12 @@ const Dashboard = () => {
 
   // KPIs
   const belowSafety = articles.filter(a => {
-    const stock = stockData.find(s => s.name === a.name);
+    const stock = stockData.find(s => s.articleId === a.articleId);
     return (stock?.quantity || 0) < (a.safetyStock || 0);
   }).length;
 
   const totalValue = articles.reduce((sum, a) => {
-    const stock = stockData.find(s => s.name === a.name);
+    const stock = stockData.find(s => s.articleId === a.articleId);
     return sum + ((stock?.quantity || 0) * (a.unitPrice || 0));
   }, 0);
 
@@ -230,7 +230,7 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={articles.map(article => {
-                        const stock = stockData.find(s => s.name === article.name);
+                        const stock = stockData.find(s => s.articleId === article.articleId);
                         return {
                           name: article.name,
                           stock: stock?.quantity || 0,
@@ -261,8 +261,8 @@ const Dashboard = () => {
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={articles.filter(article => article.isArticleFabrique).map(article => {
-                        const stock = stockData.find(s => s.name === article.name);
+                      data={articles.filter(article => article.lotSize && article.lotSize > 0).map(article => {
+                        const stock = stockData.find(s => s.articleId === article.articleId);
                         return {
                           product: article.name,
                           planned: article.lotSize || 0,
@@ -340,18 +340,21 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedArticles.map(article => (
-                    <tr key={article.articleId} className="border-b hover:bg-gray-50">
-                      <td>{article.name}</td>
-                      <td>{article.codeBare}</td>
-                      <td>{article.type}</td>
-                      <td>{article.fournisseur}</td>
-                      <td>{article.stock?.quantity || 0}</td>
-                      <td>{article.safetyStock}</td>
-                      <td>{article.unitPrice} €</td>
-                      <td>{((article.stock?.quantity || 0) * article.unitPrice).toFixed(2)} €</td>
-                    </tr>
-                  ))}
+                  {sortedArticles.map(article => {
+                    const stock = stockData.find(s => s.articleId === article.articleId);
+                    return (
+                      <tr key={article.articleId} className="border-b hover:bg-gray-50">
+                        <td>{article.name}</td>
+                        <td>{article.codeBare}</td>
+                        <td>{article.type}</td>
+                        <td>{article.fournisseur}</td>
+                        <td>{stock?.quantity || 0}</td>
+                        <td>{article.safetyStock}</td>
+                        <td>{article.unitPrice} €</td>
+                        <td>{((stock?.quantity || 0) * article.unitPrice).toFixed(2)} €</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

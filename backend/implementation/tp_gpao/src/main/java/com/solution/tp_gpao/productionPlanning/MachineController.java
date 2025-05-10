@@ -26,7 +26,8 @@ public class MachineController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteMachine(@PathVariable Long id) {
+    public @ResponseBody java.util.Map<String, Object> deleteMachine(@PathVariable Long id) {
         machineService.deleteMachine(id);
+        return java.util.Map.of("success", true);
     }
 } 

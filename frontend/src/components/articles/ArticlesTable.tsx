@@ -88,11 +88,7 @@ export function ArticlesTable({
         header: "Description",
       },
       {
-        accessorFn: (row) => {
-          if (row.isArticleAchte) return "raw";
-          if (row.isArticleFabrique) return "component";
-          return "finished";
-        },
+        accessorFn: (row) => row.type || "raw",
         id: "type",
         header: "Type",
         cell: (info) => {
@@ -154,16 +150,16 @@ export function ArticlesTable({
         accessorKey: "isArticleFabrique",
         header: "Fabriqué",
         cell: (info) => {
-          const value = info.getValue() as boolean;
-          return value ? "Oui" : "Non";
+          const value = info.getValue();
+          return value === true ? "Oui" : "Non";
         },
       },
       {
         accessorKey: "isArticleAchte",
         header: "Acheté",
         cell: (info) => {
-          const value = info.getValue() as boolean;
-          return value ? "Oui" : "Non";
+          const value = info.getValue();
+          return value === true ? "Oui" : "Non";
         },
       },
       {

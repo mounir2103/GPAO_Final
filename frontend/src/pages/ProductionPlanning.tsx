@@ -119,13 +119,14 @@ const ProductionPlanning: React.FC = () => {
 
   // Extraire le mapping gammes pour un îlot Kuziack
   const extractGammesFromIlot = (cell: Cell) => {
-    // Pour chaque produit, on prend la séquence des machines (rang = index+1)
+    // Pour chaque produit, on prend la séquence des machines avec leurs ordres réels
     const gammes: Record<string, Record<string, number>> = {};
     cell.products.forEach((p, pi) => {
       const ops: Record<string, number> = {};
       cell.machines.forEach((m, mi) => {
-        if (cell.submatrix[pi][mi] > 0) {
-          ops[m.name] = mi + 1; // Rang = index+1 dans la séquence
+        const order = cell.submatrix[pi][mi];
+        if (order > 0) {
+          ops[m.name] = order; // Utiliser l'ordre réel de la matrice
         }
       });
       gammes[p.name] = ops;
@@ -297,23 +298,23 @@ const ProductionPlanning: React.FC = () => {
                           <div>
                             <h4 className="font-medium text-sm text-muted-foreground">Sous-matrice</h4>
                             <div className="overflow-x-auto mt-2">
-                              <table className="w-full border-collapse">
-                                <tbody>
-                                  {cell.submatrix.map((row, i) => (
-                                    <tr key={i}>
+                          <table className="w-full border-collapse">
+                            <tbody>
+                              {cell.submatrix.map((row, i) => (
+                                <tr key={i}>
                                       {row.map((cell, j) => (
-                                        <td key={j} className="border p-1 text-center">
+                                    <td key={j} className="border p-1 text-center">
                                           {cell > 0 ? (
                                             <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                                           ) : (
                                             <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                                           )}
-                                        </td>
-                                      ))}
-                                    </tr>
+                                    </td>
                                   ))}
-                                </tbody>
-                              </table>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                             </div>
                           </div>
                           <div className="mt-2">
@@ -346,7 +347,7 @@ const ProductionPlanning: React.FC = () => {
                 <div className="mb-8">
                   <h4 className="font-medium mb-2">(Îlot sélectionné depuis Kuziack)</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                              <div>
                       <h4 className="font-medium mb-2">Statistiques par machine</h4>
                       <table className="min-w-full border">
                         <thead>
@@ -368,8 +369,8 @@ const ProductionPlanning: React.FC = () => {
                           ))}
                         </tbody>
                       </table>
-                    </div>
-                    <div>
+                              </div>
+                              <div>
                       <h4 className="font-medium mb-2">Groupes par rang moyen</h4>
                       <table className="min-w-full border">
                         <thead>

@@ -437,13 +437,14 @@ public class ProductionPlanningServiceImpl implements ProductionPlanningService 
         for (int i = 0; i < products.size(); i++) {
             Map<String, Object> product = products.get(i);
             for (int j = 0; j < machines.size(); j++) {
-                if (matrix.get(i).get(j) == 1) {
+                int opNumber = matrix.get(i).get(j);
+                if (opNumber > 0) { // On sauvegarde l'ordre réel
                     ProductMachineOperation operation = new ProductMachineOperation();
                     operation.setArticle(articleRepo.findById(((Number) product.get("id")).longValue())
                             .orElseThrow(() -> new RuntimeException("Article non trouvé")));
                     operation.setMachine(machineRepository.findById(((Number) machines.get(j).get("id")).longValue())
                             .orElseThrow(() -> new RuntimeException("Machine non trouvée")));
-                    operation.setOperationNumber(1);
+                    operation.setOperationNumber(opNumber); // Sauvegarder l'ordre réel
                     operationRepository.save(operation);
                 }
             }

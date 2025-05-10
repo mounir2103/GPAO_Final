@@ -34,7 +34,9 @@ public class ArticleEntity {
     private Integer delaiDoptention;
     @Enumerated(EnumType.STRING)
     private ArticleStatus status;
+    @Column(name = "is_article_fabrique")
     private boolean isArticleFabrique;
+    @Column(name = "is_article_achte")
     private boolean isArticleAchte;
     private Integer safetyStock;
     private Integer lotSize;
